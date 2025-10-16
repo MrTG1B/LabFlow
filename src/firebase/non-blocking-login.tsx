@@ -6,7 +6,8 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   GoogleAuthProvider,
-  signInWithPopup,
+  signInWithRedirect, // Changed from signInWithPopup
+  getRedirectResult,  // To handle the result after redirect
   // Assume getAuth and app are initialized elsewhere
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, Firestore } from 'firebase/firestore';
@@ -56,33 +57,45 @@ export function initiateEmailSignIn(authInstance: Auth, email: string, password:
   // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
 }
 
-/** Initiate Google sign-in (non-blocking). */
-export function initiateGoogleSignIn(authInstance: Auth, firestore: Firestore): void {
+/** Initiate Google sign-in with redirect. */
+export function initiateGoogleSignIn(authInstance: Auth): void {
   const provider = new GoogleAuthProvider();
-  signInWithPopup(authInstance, provider)
-    .then(async (result) => {
-      const user = result.user;
-      const userRef = doc(firestore, 'users', user.uid);
-      const docSnap = await getDoc(userRef);
+  // CRITICAL: Use signInWithRedirect. This will navigate away from the page.
+  signInWithRedirect(authInstance, provider);
+}
 
-      // If user doc doesn't exist, create it.
-      if (!docSnap.exists()) {
-        const newUser = {
-          uid: user.uid,
-          email: user.email,
-          createdAt: new Date().toISOString(),
-        };
-        setDoc(userRef, newUser)
-         .catch(error => {
-            errorEmitter.emit(
-              'permission-error',
-              new FirestorePermissionError({
-                path: userRef.path,
-                operation: 'create',
-                requestResourceData: newUser,
-              })
-            );
-          });
+/** Handle the result from a Google sign-in redirect. */
+export function handleGoogleRedirectResult(authInstance: Auth, firestore: Firestore) {
+  getRedirectResult(authInstance)
+    .then(async (result) => {
+      if (result) {
+        // This is the signed-in user
+        const user = result.user;
+        const userRef = doc(firestore, 'users', user.uid);
+        const docSnap = await getDoc(userRef);
+
+        // If user doc doesn't exist, create it.
+        if (!docSnap.exists()) {
+          const newUser = {
+            uid: user.uid,
+            email: user.email,
+            createdAt: new Date().toISOString(),
+          };
+          setDoc(userRef, newUser)
+           .catch(error => {
+              errorEmitter.emit(
+                'permission-error',
+                new FirestorePermissionError({
+                  path: userRef.path,
+                  operation: 'create',
+                  requestResourceData: newUser,
+                })
+              );
+            });
+        }
       }
+    }).catch((error) => {
+      // Handle Errors here.
+      console.error("Google Sign-In Redirect Error: ", error);
     });
 }

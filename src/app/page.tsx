@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/form";
 import { CircuitBoard, Loader2 } from "lucide-react";
 import placeholderImages from "@/lib/placeholder-images.json";
-import { useAuth, useUser, initiateEmailSignIn, useFirestore, initiateGoogleSignIn } from "@/firebase";
+import { useAuth, useUser, initiateEmailSignIn, useFirestore, initiateGoogleSignIn, handleGoogleRedirectResult } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 
@@ -49,6 +49,13 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
+    // When the page loads, check for a redirect result.
+    if(auth && firestore) {
+      handleGoogleRedirectResult(auth, firestore);
+    }
+  }, [auth, firestore]);
+
+  useEffect(() => {
     if (user) {
       router.push("/dashboard");
     }
@@ -72,7 +79,7 @@ export default function LoginPage() {
 
   function onGoogleSignIn() {
     setIsSubmitting(true);
-    initiateGoogleSignIn(auth, firestore);
+    initiateGoogleSignIn(auth);
   }
 
   const showSpinner = isSubmitting || isUserLoading;
