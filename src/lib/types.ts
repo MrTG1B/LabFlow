@@ -1,3 +1,4 @@
+
 export type Experiment = {
   id: string;
   name: string;
@@ -7,13 +8,17 @@ export type Experiment = {
   startDate: string;
 };
 
+export const inventoryItemTypes = ["Capacitor", "Resistor", "IC", "Connector", "Misc"] as const;
+
 export type InventoryItem = {
   id: string;
   name:string;
-  type: "Capacitor" | "Resistor" | "IC" | "Connector" | "Misc";
+  type: typeof inventoryItemTypes[number];
   quantity: number;
   unit: string;
   value?: string;
+  partNumber?: string;
+  description?: string;
 };
 
 export type Equipment = {
@@ -40,5 +45,3 @@ export type RecentActivity = {
     date: string;
     status: 'Completed' | 'In Progress';
 }
-
-    

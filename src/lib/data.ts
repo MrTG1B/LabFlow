@@ -1,3 +1,4 @@
+
 import { Experiment, InventoryItem, Equipment, Result, RecentActivity } from "./types";
 
 export const experiments: Experiment[] = [
@@ -9,11 +10,6 @@ export const experiments: Experiment[] = [
 ];
 
 export const inventory: InventoryItem[] = [
-  { id: "INV001", name: "Ceramic Capacitor", type: "Capacitor", quantity: 500, unit: "pcs", value: "10uF" },
-  { id: "INV002", name: "SMD Resistor", type: "Resistor", quantity: 2000, unit: "pcs", value: "10k" },
-  { id: "INV003", name: "Op-Amp", type: "IC", quantity: 80, unit: "pcs", value: "LM358" },
-  { id: "INV004", name: "Header Pins", type: "Connector", quantity: 25, unit: "strips" },
-  { id: "INV005", name: "ESP32-S3", type: "IC", quantity: 15, unit: "pcs", value: "WROOM-1" },
 ];
 
 export const equipment: Equipment[] = [
@@ -36,5 +32,3 @@ export const recentActivities: RecentActivity[] = [
     { id: "ACT003", activity: "Updated inventory for 10k Resistors", user: "Lab Tech", date: "1 day ago", status: "Completed" },
     { id: "ACT004", activity: "Reported issue with Oscilloscope Probe", user: "Dr. Evelyn Reed", date: "2 days ago", status: "Completed" },
 ]
-
-    

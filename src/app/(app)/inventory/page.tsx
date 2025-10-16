@@ -1,11 +1,13 @@
-import { Button } from "@/components/ui/button"
+
+'use client';
+
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -13,13 +15,25 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { PlusCircle } from "lucide-react"
-import { inventory } from "@/lib/data"
-import { cn } from "@/lib/utils"
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { useCollection } from '@/firebase';
+import { collection, query, orderBy } from 'firebase/firestore';
+import { useFirestore, useMemoFirebase } from '@/firebase/provider';
+import type { InventoryItem } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import { AddItemDialog } from './add-item-dialog';
 
 export default function InventoryPage() {
+  const firestore = useFirestore();
+
+  const inventoryQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'inventory'), orderBy('name', 'asc'));
+  }, [firestore]);
+
+  const { data: inventory, isLoading } = useCollection<InventoryItem>(inventoryQuery);
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -29,12 +43,7 @@ export default function InventoryPage() {
             Manage electronic components, including storage locations.
           </CardDescription>
         </div>
-        <Button size="sm" className="gap-1">
-          <PlusCircle className="h-3.5 w-3.5" />
-          <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-            Add Item
-          </span>
-        </Button>
+        <AddItemDialog />
       </CardHeader>
       <CardContent>
         <Table>
@@ -47,11 +56,25 @@ export default function InventoryPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {inventory.map((item) => (
+            {isLoading && (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center">
+                  Loading...
+                </TableCell>
+              </TableRow>
+            )}
+            {!isLoading && inventory?.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center">
+                  No inventory items found. Add one to get started.
+                </TableCell>
+              </TableRow>
+            )}
+            {inventory?.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.name}</TableCell>
                 <TableCell>
-                  <Badge variant={"outline"}>
+                  <Badge variant={'outline'}>
                     {item.type}
                   </Badge>
                 </TableCell>
@@ -65,7 +88,5 @@ export default function InventoryPage() {
         </Table>
       </CardContent>
     </Card>
-  )
+  );
 }
-
-    
