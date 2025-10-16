@@ -17,15 +17,17 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { useCollection } from '@/firebase';
+import { useCollection, useUser } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { useFirestore, useMemoFirebase } from '@/firebase/provider';
 import type { InventoryItem } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { AddItemDialog } from './add-item-dialog';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function InventoryPage() {
   const firestore = useFirestore();
+  const { isUserLoading } = useUser();
 
   const inventoryQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -33,6 +35,8 @@ export default function InventoryPage() {
   }, [firestore]);
 
   const { data: inventory, isLoading } = useCollection<InventoryItem>(inventoryQuery);
+  
+  const isDataLoading = isLoading || isUserLoading;
 
   return (
     <Card>
@@ -56,21 +60,24 @@ export default function InventoryPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading && (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center">
-                  Loading...
-                </TableCell>
-              </TableRow>
+            {isDataLoading && (
+              Array.from({ length: 3 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                </TableRow>
+              ))
             )}
-            {!isLoading && inventory?.length === 0 && (
+            {!isDataLoading && inventory?.length === 0 && (
               <TableRow>
                 <TableCell colSpan={4} className="text-center">
                   No inventory items found. Add one to get started.
                 </TableCell>
               </TableRow>
             )}
-            {inventory?.map((item) => (
+            {!isDataLoading && inventory?.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.name}</TableCell>
                 <TableCell>

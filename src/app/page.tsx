@@ -1,13 +1,36 @@
+
+'use client';
+
 import Image from "next/image";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CircuitBoard } from "lucide-react";
+import { CircuitBoard, Loader2 } from "lucide-react";
 import placeholderImages from "@/lib/placeholder-images.json";
+import { useAuth, useUser, initiateAnonymousSignIn } from "@/firebase";
 
 export default function LoginPage() {
   const loginImage = placeholderImages.placeholderImages.find(p => p.id === 'login-background');
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  const handleLogin = () => {
+    setIsLoggingIn(true);
+    initiateAnonymousSignIn(auth);
+  };
+
+  useEffect(() => {
+    // If user is found, redirect to dashboard.
+    if (user) {
+      router.push("/dashboard");
+    }
+  }, [user, router]);
+
+  const showSpinner = isLoggingIn || isUserLoading;
 
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
@@ -36,24 +59,12 @@ export default function LoginPage() {
             <div className="grid gap-2">
               <div className="flex items-center">
                 <Label htmlFor="password">Password</Label>
-                <Link
-                  href="#"
-                  className="ml-auto inline-block text-sm underline"
-                >
-                  Forgot your password?
-                </Link>
               </div>
               <Input id="password" type="password" required defaultValue="password" />
             </div>
-            <Button type="submit" className="w-full" asChild>
-              <Link href="/dashboard">Login</Link>
+            <Button onClick={handleLogin} disabled={showSpinner} type="button" className="w-full">
+              {showSpinner ? <Loader2 className="animate-spin" /> : 'Login'}
             </Button>
-          </div>
-          <div className="mt-4 text-center text-sm">
-            Don&apos;t have an account?{" "}
-            <Link href="#" className="underline">
-              Sign up
-            </Link>
           </div>
         </div>
       </div>
