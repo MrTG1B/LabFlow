@@ -42,14 +42,12 @@ export default function SidebarNav({ isMobile = false }) {
             <SidebarMenu>
                 {links.map((link) => (
                     <SidebarMenuItem key={link.href}>
-                        <Link href={link.href} passHref legacyBehavior>
-                            <SidebarMenuButton asChild isActive={pathname === link.href}>
-                                <a>
-                                    <link.icon className="h-4 w-4" />
-                                    <span>{link.label}</span>
-                                </a>
-                            </SidebarMenuButton>
-                        </Link>
+                        <SidebarMenuButton asChild isActive={pathname === link.href}>
+                            <Link href={link.href}>
+                                <link.icon className="h-4 w-4" />
+                                <span>{link.label}</span>
+                            </Link>
+                        </SidebarMenuButton>
                     </SidebarMenuItem>
                 ))}
             </SidebarMenu>
