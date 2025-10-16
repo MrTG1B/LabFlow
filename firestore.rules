@@ -1,138 +1,74 @@
 /**
- * @fileoverview Firestore Security Rules for LabFlow at Degen Technologies Pvt. Ltd.
+ * @fileoverview Firestore Security Rules for the application.
  *
  * Core Philosophy:
- * This ruleset enforces a combination of owner-based and shared access control, with a focus on authorization independence.
- * The primary goal is to allow users to manage their own data securely and collaborate on projects effectively.
+ * This ruleset enforces a user-ownership model for user profiles and allows public read access to inventory items.
  *
  * Data Structure:
- * - `/personnel/{personnelId}`: Stores individual personnel data, accessible only by the personnel themselves.
- * - `/projects/{projectId}`: Stores project data.  Access is controlled by the project's `personnelIds` array.
- * - `/projects/{projectId}/experiments/{experimentId}`: Stores experiment data associated with a project.  Inherits access from the parent project and denormalizes personnel information for authorization independence.
- * - `/inventory/{inventoryItemId}`: Stores inventory item data.
- * - `/equipment/{equipmentId}`: Stores equipment data.
- * - `/equipment/{equipmentId}/logs/{equipmentLogId}`: Stores equipment log data associated with a piece of equipment.
+ * - /users/{userId}: Stores user profile data, with access restricted to the user themselves.
+ * - /inventory/{inventoryItemId}: Stores inventory item data, publicly readable, but writable by no one.
  *
  * Key Security Decisions:
- * - Personnel can only read/write their own personnel document.
- * - Projects are accessible by personnel listed in the `personnelIds` array.
- * - Experiments inherit access from their parent project.
- * - Listing all personnel is disallowed for privacy.
- * - All writes require a verified user identity (`request.auth != null`).
+ * - Users can only create, read, update, and delete their own profile data.
+ * - Inventory items are read-only for all users.
+ * - Listing of users is disallowed.
  *
  * Denormalization for Authorization:
- * - Experiments denormalize `personnelId` from the related project, avoiding extra `get()` calls during experiment creation and access control.
+ * - The User document's `uid` field must match the `userId` path segment to ensure ownership.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to personnel data. Only the authenticated user can access their own document.
-     * @path /personnel/{personnelId}
-     * @allow (get, create, update, delete): If the user is authenticated and the personnelId matches the authenticated user's ID.
-     *   Example: User with UID 'user_abc' can read, create, update, and delete /personnel/user_abc.
-     * @deny (get, create, update, delete): If the user is not authenticated, or the personnelId does not match the authenticated user's ID.
-     *   Example: User with UID 'user_def' cannot access /personnel/user_abc.
-     * @principle Enforces strict user ownership for personnel data.
+     * @description Controls access to user profile documents.
+     * @path /users/{userId}
+     * @allow (create) User with UID 'user123' can create their profile at /users/user123.
+     * @deny (create) User with UID 'user123' cannot create a profile at /users/anotherUser.
+     * @allow (get) User with UID 'user123' can read their profile at /users/user123.
+     * @deny (get) User with UID 'user123' cannot read another user's profile at /users/anotherUser.
+     * @allow (update) User with UID 'user123' can update their profile at /users/user123.
+     * @deny (update) User with UID 'user123' cannot update another user's profile at /users/anotherUser.
+     * @allow (delete) User with UID 'user123' can delete their profile at /users/user123.
+     * @deny (delete) User with UID 'user123' cannot delete another user's profile at /users/anotherUser.
+     * @principle Enforces document ownership for all operations.
      */
-    match /personnel/{personnelId} {
-      allow get: if isSignedIn() && isOwner(personnelId);
+    match /users/{userId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isSignedIn() && isOwner(personnelId) && request.resource.data.id == personnelId;
-      allow update: if isSignedIn() && isOwner(personnelId) && resource.data.id == personnelId;
-      allow delete: if isSignedIn() && isExistingOwner(personnelId);
+
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.uid == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.uid == resource.data.uid;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to project data.  Personnel listed in the `personnelIds` array can access the project.
-     * @path /projects/{projectId}
-     * @allow (get, list, create, update, delete): If the user is authenticated and their UID is in the `personnelIds` array.
-     *   Example: User with UID 'user_abc' can access /projects/project_1 if 'user_abc' is in the project's `personnelIds` array.
-     * @deny (get, list, create, update, delete): If the user is not authenticated, or their UID is not in the `personnelIds` array.
-     *   Example: User with UID 'user_def' cannot access /projects/project_1 if 'user_def' is not in the project's `personnelIds` array.
-     * @principle Enforces shared access control based on project membership.
-     */
-    match /projects/{projectId} {
-      allow get, list: if isSignedIn() && isInPersonnelIds(request.auth.uid, resource.data.personnelIds);
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && isInPersonnelIds(request.auth.uid, resource.data.personnelIds);
-      allow delete: if isSignedIn() && isInPersonnelIds(request.auth.uid, resource.data.personnelIds) && resource != null;
-    }
-
-    /**
-     * @description Controls access to experiment data within a project. Inherits access from the parent project.
-     * @path /projects/{projectId}/experiments/{experimentId}
-     * @allow (get, list, create, update, delete): If the user is authenticated and the `personnelId` matches the authenticated user's ID, and the user is in the parent project's `personnelIds` array.
-     *   Example: User with UID 'user_abc' can access /projects/project_1/experiments/experiment_1 if the experiment's `personnelId` is 'user_abc' and 'user_abc' is in project_1's `personnelIds` array.
-     * @deny (get, list, create, update, delete): If the user is not authenticated, the `personnelId` does not match the authenticated user's ID, or the user is not in the parent project's `personnelIds` array.
-     *   Example: User with UID 'user_def' cannot access /projects/project_1/experiments/experiment_1 if the experiment's `personnelId` is 'user_abc'.
-     * @principle Enforces hierarchical access control and authorization independence.
-     */
-    match /projects/{projectId}/experiments/{experimentId} {
-      allow get, list: if isSignedIn() && get(/databases/$(database)/documents/projects/$(projectId)).data.personnelIds.hasAny([request.auth.uid]);
-      allow create: if isSignedIn() && request.resource.data.personnelId == request.auth.uid && get(/databases/$(database)/documents/projects/$(projectId)).data.personnelIds.hasAny([request.auth.uid]);
-      allow update: if isSignedIn() && request.resource.data.personnelId == resource.data.personnelId && get(/databases/$(database)/documents/projects/$(projectId)).data.personnelIds.hasAny([request.auth.uid]);
-      allow delete: if isSignedIn() && resource.data.personnelId == request.auth.uid && resource != null && get(/databases/$(database)/documents/projects/$(projectId)).data.personnelIds.hasAny([request.auth.uid]);
-    }
-
-    /**
-     * @description Controls access to inventory item data.
+     * @description Controls access to inventory item documents.
      * @path /inventory/{inventoryItemId}
-     * @allow (get, list): Public read access.
-     *   Example: Any user can read the inventory data.
-     * @allow (create, update, delete): Only authenticated users can modify inventory data.
-     * @deny (create, update, delete): If the user is not authenticated.
+     * @allow (get) Any user can retrieve inventory items.
+     * @allow (list) Any user can list inventory items.
+     * @deny (create) No user can create inventory items.
+     * @deny (update) No user can update inventory items.
+     * @deny (delete) No user can delete inventory items.
+     * @principle Allows public read access but restricts all write access.
      */
     match /inventory/{inventoryItemId} {
       allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn() && resource != null;
-    }
-
-    /**
-     * @description Controls access to equipment data.
-     * @path /equipment/{equipmentId}
-     * @allow (get, list): Public read access.
-     * @allow (create, update, delete): Only authenticated users can modify equipment data.
-     * @deny (create, update, delete): If the user is not authenticated.
-     */
-    match /equipment/{equipmentId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn() && resource != null;
-    }
-
-    /**
-     * @description Controls access to equipment log data associated with a specific equipment.
-     * @path /equipment/{equipmentId}/logs/{equipmentLogId}
-     * @allow (get, list): Public read access.
-     * @allow (create, update, delete): Only authenticated users can modify equipment log data.
-     * @deny (create, update, delete): If the user is not authenticated.
-     */
-    match /equipment/{equipmentId}/logs/{equipmentLogId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn() && resource != null;
-    }
-
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    function isExistingOwner(userId) {
-      return isSignedIn() && isOwner(userId) && resource != null;
-    }
-
-    function isInPersonnelIds(userId, personnelIds) {
-        return personnelIds.hasAny([userId]);
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
   }
 }
