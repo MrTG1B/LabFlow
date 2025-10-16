@@ -8,30 +8,37 @@ import { getFirestore } from 'firebase/firestore'
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
-  if (!getApps().length) {
-    // Important! initializeApp() is called without any arguments because Firebase App Hosting
-    // integrates with the initializeApp() function to provide the environment variables needed to
-    // populate the FirebaseOptions in production. It is critical that we attempt to call initializeApp()
-    // without arguments.
-    let firebaseApp;
+  if (typeof window === 'undefined') {
+    // On the server, we can always try to initialize, and it will be a no-op
+    // if already initialized.
     try {
-      // Attempt to initialize via Firebase App Hosting environment variables
-      firebaseApp = initializeApp();
+      return getSdks(initializeApp());
     } catch (e) {
-      // Only warn in production because it's normal to use the firebaseConfig to initialize
-      // during development
-      if (process.env.NODE_ENV === "production") {
-        console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
-      }
-      firebaseApp = initializeApp(firebaseConfig);
+      return getSdks(initializeApp(firebaseConfig));
     }
-
-    return getSdks(firebaseApp);
   }
 
-  // If already initialized, return the SDKs with the already initialized App
+  // On the client, we must use getApps() to avoid re-initializing.
+  if (!getApps().length) {
+    // In a production environment (Firebase App Hosting), the config is provided
+    // automatically, so initializeApp() is called without arguments.
+    if (process.env.NODE_ENV === 'production') {
+       try {
+         return getSdks(initializeApp());
+       } catch (e) {
+         console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
+         return getSdks(initializeApp(firebaseConfig));
+       }
+    } else {
+      // In development, we use the local config file.
+      return getSdks(initializeApp(firebaseConfig));
+    }
+  }
+
+  // If already initialized on the client, return the existing app instance.
   return getSdks(getApp());
 }
+
 
 export function getSdks(firebaseApp: FirebaseApp) {
   return {

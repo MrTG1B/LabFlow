@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Boxes, FlaskConical, Wrench } from "lucide-react"
-import { recentActivities } from "@/lib/data"
 
 export default function Dashboard() {
   return (
@@ -28,9 +27,9 @@ export default function Dashboard() {
             <FlaskConical className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
+            <div className="text-2xl font-bold">0</div>
             <p className="text-xs text-muted-foreground">
-              +2 from last week
+              No active experiments
             </p>
           </CardContent>
         </Card>
@@ -42,9 +41,9 @@ export default function Dashboard() {
             <Boxes className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">5</div>
+            <div className="text-2xl font-bold">0</div>
             <p className="text-xs text-muted-foreground">
-              3 reagents, 2 samples
+              All items in stock
             </p>
           </CardContent>
         </Card>
@@ -56,9 +55,9 @@ export default function Dashboard() {
             <Wrench className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3</div>
+            <div className="text-2xl font-bold">0</div>
             <p className="text-xs text-muted-foreground">
-              Next due in 2 days
+              No maintenance scheduled
             </p>
           </CardContent>
         </Card>
@@ -79,18 +78,11 @@ export default function Dashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {recentActivities.map((activity) => (
-                <TableRow key={activity.id}>
-                  <TableCell className="font-medium">{activity.activity}</TableCell>
-                  <TableCell>{activity.user}</TableCell>
-                  <TableCell>{activity.date}</TableCell>
-                  <TableCell>
-                    <Badge variant={activity.status === "Completed" ? "default" : "secondary"} className={activity.status === 'In Progress' ? 'bg-yellow-500/20 text-yellow-500' : activity.status === 'Completed' ? 'bg-green-500/20 text-green-500' : ''}>
-                      {activity.status}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
+              <TableRow>
+                <TableCell colSpan={4} className="text-center">
+                  No recent activity.
+                </TableCell>
+              </TableRow>
             </TableBody>
           </Table>
         </CardContent>

@@ -1,30 +1,28 @@
 'use server';
 /**
  * @fileOverview An AI-powered scientific paper summarizer.
+ * This file defines the server-side logic for the AI summarization flow.
  *
- * - summarizePaper - A function that summarizes a scientific paper.
- * - SummarizePaperInput - The input type for the summarizePaper function.
- * - SummarizePaperOutput - The return type for the summarizePaper function.
+ * - summarizePaperFlow - The Genkit flow that performs the summarization.
+ * - SummarizePaperInputSchema - The Zod schema for the flow's input.
+ * - SummarizePaperOutputSchema - The Zod schema for the flow's output.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-const SummarizePaperInputSchema = z.object({
+export const SummarizePaperInputSchema = z.object({
   paperText: z
     .string()
     .describe('The text of the scientific paper to summarize.'),
 });
 export type SummarizePaperInput = z.infer<typeof SummarizePaperInputSchema>;
 
-const SummarizePaperOutputSchema = z.object({
+export const SummarizePaperOutputSchema = z.object({
   summary: z.string().describe('The summary of the scientific paper.'),
 });
 export type SummarizePaperOutput = z.infer<typeof SummarizePaperOutputSchema>;
 
-export async function summarizePaper(input: SummarizePaperInput): Promise<SummarizePaperOutput> {
-  return summarizePaperFlow(input);
-}
 
 const prompt = ai.definePrompt({
   name: 'summarizePaperPrompt',
@@ -33,7 +31,7 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert scientific summarizer.  Please summarize the following paper in a clear and concise manner.\n\nPaper Text: {{{paperText}}}`,
 });
 
-const summarizePaperFlow = ai.defineFlow(
+export const summarizePaperFlow = ai.defineFlow(
   {
     name: 'summarizePaperFlow',
     inputSchema: SummarizePaperInputSchema,

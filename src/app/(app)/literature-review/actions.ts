@@ -1,10 +1,10 @@
 "use server";
 
-import { summarizePaper, SummarizePaperInput } from "@/ai/flows/ai-scientific-paper-summarizer";
+import { summarizePaperFlow, type SummarizePaperInput } from "@/ai/flows/ai-scientific-paper-summarizer";
 
 export async function getSummary(input: SummarizePaperInput) {
   try {
-    const { summary } = await summarizePaper(input);
+    const  summary  = await summarizePaperFlow(input);
     return { success: true, summary };
   } catch (error) {
     console.error(error);
