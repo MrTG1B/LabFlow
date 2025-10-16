@@ -10,20 +10,14 @@ import {
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboard,
-  FlaskConical,
   Boxes,
-  Wrench,
-  Beaker,
   BookOpen,
   CircuitBoard,
 } from "lucide-react";
 
 const links = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/experiments", label: "Experiments", icon: FlaskConical },
   { href: "/inventory", label: "Inventory", icon: Boxes },
-  { href: "/equipment", label: "Equipment", icon: Wrench },
-  { href: "/results", label: "Results", icon: Beaker },
   { href: "/literature-review", label: "AI Review", icon: BookOpen },
 ];
 
