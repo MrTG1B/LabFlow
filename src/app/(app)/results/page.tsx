@@ -22,7 +22,9 @@ export default function ResultsPage() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>Results</CardTitle>
+          <CardTitle>
+            <div>Results</div>
+          </CardTitle>
           <CardDescription>
             Log and view experimental results.
           </CardDescription>
