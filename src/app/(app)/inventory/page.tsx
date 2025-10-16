@@ -43,7 +43,6 @@ export default function InventoryPage() {
               <TableHead>Item Name</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Quantity</TableHead>
-              <TableHead>Location</TableHead>
               <TableHead>Value</TableHead>
             </TableRow>
           </TableHeader>
@@ -59,7 +58,6 @@ export default function InventoryPage() {
                 <TableCell className={cn(item.quantity < 10 ? "text-red-500" : "")}>
                   {item.quantity} {item.unit}
                 </TableCell>
-                <TableCell>{item.location}</TableCell>
                 <TableCell>{item.value}</TableCell>
               </TableRow>
             ))}
@@ -69,3 +67,5 @@ export default function InventoryPage() {
     </Card>
   )
 }
+
+    

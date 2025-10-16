@@ -13,7 +13,6 @@ export type InventoryItem = {
   type: "Capacitor" | "Resistor" | "IC" | "Connector" | "Misc";
   quantity: number;
   unit: string;
-  location: string;
   value?: string;
 };
 
@@ -41,3 +40,5 @@ export type RecentActivity = {
     date: string;
     status: 'Completed' | 'In Progress';
 }
+
+    

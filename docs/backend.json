@@ -119,10 +119,6 @@
           "type": "string",
           "description": "The unit of measurement for quantity (e.g., 'pcs', 'reels')."
         },
-        "locationId": {
-          "type": "string",
-          "description": "Reference to the Location where the item is stored. (Relationship: Location 1:N InventoryItem)"
-        },
         "value": {
           "type": "string",
           "description": "The value of the component (e.g. '10k', '1uF')."
@@ -136,37 +132,7 @@
         "id",
         "name",
         "quantity",
-        "unit",
-        "locationId"
-      ]
-    },
-    "Location": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Location",
-      "type": "object",
-      "description": "Represents a storage location within the lab.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the location."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the location (e.g., 'Bin 1', 'Shelf 3')."
-        },
-        "description": {
-          "type": "string",
-          "description": "Description of the location."
-        },
-        "roomNumber": {
-          "type": "string",
-          "description": "Room Number."
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "description"
+        "unit"
       ]
     },
     "Equipment": {
@@ -350,22 +316,6 @@
         }
       },
       {
-        "path": "/locations/{locationId}",
-        "definition": {
-          "entityName": "Location",
-          "schema": {
-            "$ref": "#/backend/entities/Location"
-          },
-          "description": "Stores location data for inventory. Indexed by locationId.",
-          "params": [
-            {
-              "name": "locationId",
-              "description": "Unique identifier for the location."
-            }
-          ]
-        }
-      },
-      {
         "path": "/equipment/{equipmentId}",
         "definition": {
           "entityName": "Equipment",
@@ -405,3 +355,4 @@
     "reasoning": "The Firestore structure is designed to manage lab experiments, inventory, equipment, and personnel for Degen Technologies Pvt. Ltd.  The structure follows the principle of Authorization Independence by denormalizing personnel data where needed to avoid `get()` calls in security rules. Hierarchical paths are used for user-owned data (e.g., projects and experiments) to simplify security rules and ownership management.\n\n*   **Authorization Independence:** Project personnel lists are copied to experiments to ensure experiments can be created atomically without needing to read project data in rules.\n*   **Structural Segregation:** Each entity type (projects, experiments, inventory, etc.) is stored in its own top-level collection.\n*   **Access Modeling:** Path-based ownership is used for projects and experiments, while other entities are managed at the top-level.\n*   **QAPs (Rules are not Filters):** The segregation into separate collections based on entity type allows for secure list operations as each collection has a homogeneous security posture.\n\n\nThis structure is designed to provide a secure and scalable foundation for LabFlow, enabling efficient management of lab operations while adhering to best practices for Firestore security and performance."
   }
 }
+    
