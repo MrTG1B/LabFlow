@@ -22,8 +22,9 @@ import {
 } from "@/components/ui/form";
 import { CircuitBoard, Loader2 } from "lucide-react";
 import placeholderImages from "@/lib/placeholder-images.json";
-import { useAuth, useUser, initiateEmailSignIn } from "@/firebase";
+import { useAuth, useUser, initiateEmailSignIn, useFirestore, initiateGoogleSignIn } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
+import { Separator } from "@/components/ui/separator";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -33,6 +34,7 @@ const formSchema = z.object({
 export default function LoginPage() {
   const loginImage = placeholderImages.placeholderImages.find(p => p.id === 'login-background');
   const auth = useAuth();
+  const firestore = useFirestore();
   const { user, isUserLoading, userError } = useUser();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -66,6 +68,11 @@ export default function LoginPage() {
   function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     initiateEmailSignIn(auth, values.email, values.password);
+  }
+
+  function onGoogleSignIn() {
+    setIsSubmitting(true);
+    initiateGoogleSignIn(auth, firestore);
   }
 
   const showSpinner = isSubmitting || isUserLoading;
@@ -122,6 +129,27 @@ export default function LoginPage() {
               </Button>
             </form>
           </Form>
+           <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                Or continue with
+                </span>
+            </div>
+            </div>
+            <Button variant="outline" className="w-full" onClick={onGoogleSignIn} disabled={showSpinner}>
+              {showSpinner ? <Loader2 className="animate-spin" /> : <>
+                <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">
+                  <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039L38.438 10.38C34.661 7.042 29.697 5 24 5C13.254 5 5 13.254 5 24s8.254 19 19 19s19-8.254 19-19c0-1.341-.138-2.65-.389-3.917z" />
+                  <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 13 24 13c3.059 0 5.842 1.154 7.961 3.039L38.438 10.38C34.661 7.042 29.697 5 24 5C17.643 5 12.042 7.746 8.076 11.834l-1.77-1.42z" />
+                  <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.438-5.38l-6.522-5.023C29.042 36.108 26.714 37 24 37c-5.223 0-9.657-3.657-11.303-8.38H6.306v.01C8.243 36.192 15.49 44 24 44z" />
+                  <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.522 5.023C42.472 35.836 44 30.138 44 24c0-1.341-.138-2.65-.389-3.917z" />
+                </svg>
+                Google
+              </>}
+            </Button>
            <div className="mt-4 text-center text-sm">
             Don&apos;t have an account?{" "}
             <Link href="/signup" className="underline">
