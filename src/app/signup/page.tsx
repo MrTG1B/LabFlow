@@ -36,6 +36,7 @@ export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -46,9 +47,11 @@ export default function SignupPage() {
   });
 
    useEffect(() => {
-    // When the page loads, check for a redirect result.
     if(auth && firestore) {
-      handleGoogleRedirectResult(auth, firestore);
+      handleGoogleRedirectResult(auth, firestore, (error) => {
+        setIsSubmitting(false);
+        setAuthError(error.message);
+      });
     }
   }, [auth, firestore]);
 
@@ -59,24 +62,37 @@ export default function SignupPage() {
   }, [user, router]);
 
   useEffect(() => {
-    if (userError) {
+    const error = authError || userError?.message;
+    if (error) {
       toast({
         variant: "destructive",
         title: "Signup Failed",
-        description: "Could not create an account. The email might already be in use.",
+        description: error,
       });
       setIsSubmitting(false);
+      setAuthError(null);
     }
-  }, [userError, toast]);
+  }, [authError, userError, toast]);
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
+    setAuthError(null);
     if (!firestore) return;
-    initiateEmailSignUp(auth, firestore, values.email, values.password);
+    try {
+      await initiateEmailSignUp(auth, firestore, values.email, values.password);
+    } catch (error: any) {
+        setIsSubmitting(false);
+        if (error.code === 'auth/email-already-in-use') {
+            setAuthError("This email is already in use. Please sign in or use a different email.");
+        } else {
+            setAuthError(error.message);
+        }
+    }
   }
 
   function onGoogleSignUp() {
     setIsSubmitting(true);
+    setAuthError(null);
     if (!auth) return;
     initiateGoogleSignIn(auth);
   }

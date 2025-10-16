@@ -38,6 +38,7 @@ export default function LoginPage() {
   const { user, isUserLoading, userError } = useUser();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -49,9 +50,11 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    // When the page loads, check for a redirect result.
     if(auth && firestore) {
-      handleGoogleRedirectResult(auth, firestore);
+      handleGoogleRedirectResult(auth, firestore, (error) => {
+        setIsSubmitting(false);
+        setAuthError(error.message);
+      });
     }
   }, [auth, firestore]);
 
@@ -62,23 +65,36 @@ export default function LoginPage() {
   }, [user, router]);
   
   useEffect(() => {
-    if (userError) {
+    const error = authError || userError?.message;
+    if (error) {
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: "Invalid email or password. Please try again.",
+        description: error,
       });
        setIsSubmitting(false);
+       setAuthError(null);
     }
-  }, [userError, toast]);
+  }, [authError, userError, toast]);
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
-    initiateEmailSignIn(auth, values.email, values.password);
+    setAuthError(null);
+    try {
+        await initiateEmailSignIn(auth, values.email, values.password);
+    } catch (error: any) {
+        setIsSubmitting(false);
+        if (error.code === 'auth/invalid-credential') {
+            setAuthError("Invalid email or password. Please try again.");
+        } else {
+            setAuthError(error.message);
+        }
+    }
   }
 
   function onGoogleSignIn() {
     setIsSubmitting(true);
+    setAuthError(null);
     initiateGoogleSignIn(auth);
   }
 
