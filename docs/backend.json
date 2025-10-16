@@ -117,20 +117,19 @@
         },
         "unit": {
           "type": "string",
-          "description": "The unit of measurement for quantity (e.g., 'mL', 'g', 'pieces')."
+          "description": "The unit of measurement for quantity (e.g., 'pcs', 'reels')."
         },
         "locationId": {
           "type": "string",
           "description": "Reference to the Location where the item is stored. (Relationship: Location 1:N InventoryItem)"
         },
-        "expirationDate": {
+        "value": {
           "type": "string",
-          "description": "Expiration date of the item, if applicable.",
-          "format": "date-time"
+          "description": "The value of the component (e.g. '10k', '1uF')."
         },
-        "manufacturer": {
+        "partNumber": {
           "type": "string",
-          "description": "The items manufacturer."
+          "description": "The manufacturer part number."
         }
       },
       "required": [
@@ -153,7 +152,7 @@
         },
         "name": {
           "type": "string",
-          "description": "Name of the location (e.g., 'Freezer 1', 'Shelf 3')."
+          "description": "Name of the location (e.g., 'Bin 1', 'Shelf 3')."
         },
         "description": {
           "type": "string",

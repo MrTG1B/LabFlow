@@ -4,7 +4,7 @@ import {
   LogOut,
   Menu,
   Settings,
-  FlaskRound
+  CircuitBoard
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -27,8 +27,8 @@ export default function Header() {
           href="/dashboard"
           className="flex items-center gap-2 text-lg font-semibold md:text-base"
         >
-          <FlaskRound className="h-6 w-6 text-primary" />
-          <span className="sr-only">LabFlow</span>
+          <CircuitBoard className="h-6 w-6 text-primary" />
+          <span className="sr-only">Degen Technologies</span>
         </Link>
       </nav>
       <Sheet>

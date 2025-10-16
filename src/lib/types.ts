@@ -10,11 +10,11 @@ export type Experiment = {
 export type InventoryItem = {
   id: string;
   name:string;
-  type: "Reagent" | "Sample";
+  type: "Capacitor" | "Resistor" | "IC" | "Connector" | "Misc";
   quantity: number;
   unit: string;
   location: string;
-  expirationDate: string;
+  value?: string;
 };
 
 export type Equipment = {

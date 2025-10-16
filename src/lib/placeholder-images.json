@@ -2,9 +2,9 @@
   "placeholderImages": [
     {
       "id": "login-background",
-      "description": "A modern laboratory with scientific equipment.",
-      "imageUrl": "https://picsum.photos/seed/labflow/1920/1080",
-      "imageHint": "modern laboratory"
+      "description": "A close-up of a complex circuit board with glowing components.",
+      "imageUrl": "https://picsum.photos/seed/degen-tech/1920/1080",
+      "imageHint": "circuit board"
     }
   ]
 }

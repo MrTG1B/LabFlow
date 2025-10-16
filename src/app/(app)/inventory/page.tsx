@@ -26,7 +26,7 @@ export default function InventoryPage() {
         <div>
           <CardTitle>Inventory</CardTitle>
           <CardDescription>
-            Manage samples and reagents, including storage locations.
+            Manage electronic components, including storage locations.
           </CardDescription>
         </div>
         <Button size="sm" className="gap-1">
@@ -44,7 +44,7 @@ export default function InventoryPage() {
               <TableHead>Type</TableHead>
               <TableHead>Quantity</TableHead>
               <TableHead>Location</TableHead>
-              <TableHead>Expiration Date</TableHead>
+              <TableHead>Value</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -52,7 +52,7 @@ export default function InventoryPage() {
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.name}</TableCell>
                 <TableCell>
-                  <Badge variant={item.type === 'Reagent' ? "outline" : "secondary"}>
+                  <Badge variant={"outline"}>
                     {item.type}
                   </Badge>
                 </TableCell>
@@ -60,7 +60,7 @@ export default function InventoryPage() {
                   {item.quantity} {item.unit}
                 </TableCell>
                 <TableCell>{item.location}</TableCell>
-                <TableCell>{item.expirationDate}</TableCell>
+                <TableCell>{item.value}</TableCell>
               </TableRow>
             ))}
           </TableBody>
