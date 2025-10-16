@@ -1,97 +1,28 @@
+
 {
   "entities": {
-    "Experiment": {
+    "User": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Experiment",
+      "title": "User",
       "type": "object",
-      "description": "Represents a single experiment conducted in the lab.",
+      "description": "Represents an application user.",
       "properties": {
-        "id": {
+        "uid": {
           "type": "string",
-          "description": "Unique identifier for the experiment."
+          "description": "The user's unique ID from Firebase Authentication."
         },
-        "projectId": {
+        "email": {
           "type": "string",
-          "description": "Reference to the Project this experiment belongs to. (Relationship: Project 1:N Experiment)"
+          "description": "The user's email address.",
+          "format": "email"
         },
-        "personnelId": {
+        "createdAt": {
           "type": "string",
-          "description": "Reference to the Personnel responsible for the experiment. (Relationship: Personnel 1:N Experiment)"
-        },
-        "title": {
-          "type": "string",
-          "description": "Title of the experiment."
-        },
-        "description": {
-          "type": "string",
-          "description": "Detailed description of the experiment."
-        },
-        "startDate": {
-          "type": "string",
-          "description": "Date when the experiment started.",
+          "description": "The date the user account was created.",
           "format": "date-time"
-        },
-        "endDate": {
-          "type": "string",
-          "description": "Date when the experiment ended or is expected to end.",
-          "format": "date-time"
-        },
-        "results": {
-          "type": "string",
-          "description": "The experiment results."
         }
       },
-      "required": [
-        "id",
-        "projectId",
-        "personnelId",
-        "title",
-        "description",
-        "startDate"
-      ]
-    },
-    "Project": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Project",
-      "type": "object",
-      "description": "Represents a research project.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the project."
-        },
-        "title": {
-          "type": "string",
-          "description": "Title of the project."
-        },
-        "description": {
-          "type": "string",
-          "description": "Description of the project."
-        },
-        "startDate": {
-          "type": "string",
-          "description": "Start date of the project.",
-          "format": "date-time"
-        },
-        "endDate": {
-          "type": "string",
-          "description": "End date of the project.",
-          "format": "date-time"
-        },
-        "personnelIds": {
-          "type": "array",
-          "description": "References to Personnels working on this project. (Relationship: Personnel N:N Project)",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "required": [
-        "id",
-        "title",
-        "description",
-        "startDate"
-      ]
+      "required": ["uid", "email", "createdAt"]
     },
     "InventoryItem": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -106,6 +37,11 @@
         "name": {
           "type": "string",
           "description": "Name of the inventory item."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["Capacitor", "Resistor", "IC", "Connector", "Misc"],
+          "description": "The type of inventory item."
         },
         "description": {
           "type": "string",
@@ -128,173 +64,26 @@
           "description": "The manufacturer part number."
         }
       },
-      "required": [
-        "id",
-        "name",
-        "quantity",
-        "unit"
-      ]
-    },
-    "Equipment": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Equipment",
-      "type": "object",
-      "description": "Represents a piece of equipment in the lab.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the equipment."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the equipment."
-        },
-        "description": {
-          "type": "string",
-          "description": "Description of the equipment."
-        },
-        "maintenanceSchedule": {
-          "type": "string",
-          "description": "Description of the equipment's maintenance schedule."
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "description"
-      ]
-    },
-    "EquipmentLog": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "EquipmentLog",
-      "type": "object",
-      "description": "Represents a log entry for equipment usage or maintenance.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the log entry."
-        },
-        "equipmentId": {
-          "type": "string",
-          "description": "Reference to the Equipment this log entry belongs to. (Relationship: Equipment 1:N EquipmentLog)"
-        },
-        "personnelId": {
-          "type": "string",
-          "description": "Reference to the Personnel who used/maintained the equipment. (Relationship: Personnel 1:N EquipmentLog)"
-        },
-        "logDate": {
-          "type": "string",
-          "description": "Date and time of the log entry.",
-          "format": "date-time"
-        },
-        "notes": {
-          "type": "string",
-          "description": "Notes about the usage or maintenance performed."
-        },
-        "type": {
-          "type": "string",
-          "description": "The equipment usage type. Example: Usage, Maintanence, Repair"
-        }
-      },
-      "required": [
-        "id",
-        "equipmentId",
-        "personnelId",
-        "logDate"
-      ]
-    },
-    "Personnel": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Personnel",
-      "type": "object",
-      "description": "Represents a lab personnel.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the personnel."
-        },
-        "firstName": {
-          "type": "string",
-          "description": "The personnel's first name."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "The personnel's last name."
-        },
-        "email": {
-          "type": "string",
-          "description": "The personnel's email address.",
-          "format": "email"
-        },
-        "role": {
-          "type": "string",
-          "description": "The personnel's role in the lab."
-        }
-      },
-      "required": [
-        "id",
-        "firstName",
-        "lastName",
-        "email"
-      ]
+      "required": ["id", "name", "quantity", "unit", "type"]
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": ["password", "anonymous"]
   },
   "firestore": {
     "structure": [
       {
-        "path": "/personnel/{personnelId}",
+        "path": "/users/{userId}",
         "definition": {
-          "entityName": "Personnel",
+          "entityName": "User",
           "schema": {
-            "$ref": "#/backend/entities/Personnel"
+            "$ref": "#/backend/entities/User"
           },
-          "description": "Stores lab personnel information.  Indexed by personnelId.",
+          "description": "Stores application user profile data. Indexed by Firebase Auth user ID.",
           "params": [
             {
-              "name": "personnelId",
-              "description": "Unique identifier for the personnel."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/projects/{projectId}",
-        "definition": {
-          "entityName": "Project",
-          "schema": {
-            "$ref": "#/backend/entities/Project"
-          },
-          "description": "Stores project information.  Indexed by projectId.",
-          "params": [
-            {
-              "name": "projectId",
-              "description": "Unique identifier for the project."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/projects/{projectId}/experiments/{experimentId}",
-        "definition": {
-          "entityName": "Experiment",
-          "schema": {
-            "$ref": "#/backend/entities/Experiment"
-          },
-          "description": "Stores experiment data associated with a specific project. Includes denormalized 'personnelId' for authorization independence. Indexed by experimentId.",
-          "params": [
-            {
-              "name": "projectId",
-              "description": "Unique identifier for the project."
-            },
-            {
-              "name": "experimentId",
-              "description": "Unique identifier for the experiment."
+              "name": "userId",
+              "description": "The user's unique ID from Firebase Authentication."
             }
           ]
         }
@@ -314,45 +103,7 @@
             }
           ]
         }
-      },
-      {
-        "path": "/equipment/{equipmentId}",
-        "definition": {
-          "entityName": "Equipment",
-          "schema": {
-            "$ref": "#/backend/entities/Equipment"
-          },
-          "description": "Stores equipment data. Indexed by equipmentId.",
-          "params": [
-            {
-              "name": "equipmentId",
-              "description": "Unique identifier for the equipment."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/equipment/{equipmentId}/logs/{equipmentLogId}",
-        "definition": {
-          "entityName": "EquipmentLog",
-          "schema": {
-            "$ref": "#/backend/entities/EquipmentLog"
-          },
-          "description": "Stores equipment log data associated with a specific equipment. Indexed by equipmentLogId.",
-          "params": [
-            {
-              "name": "equipmentId",
-              "description": "Unique identifier for the equipment."
-            },
-            {
-              "name": "equipmentLogId",
-              "description": "Unique identifier for the equipment log."
-            }
-          ]
-        }
       }
-    ],
-    "reasoning": "The Firestore structure is designed to manage lab experiments, inventory, equipment, and personnel for Degen Technologies Pvt. Ltd.  The structure follows the principle of Authorization Independence by denormalizing personnel data where needed to avoid `get()` calls in security rules. Hierarchical paths are used for user-owned data (e.g., projects and experiments) to simplify security rules and ownership management.\n\n*   **Authorization Independence:** Project personnel lists are copied to experiments to ensure experiments can be created atomically without needing to read project data in rules.\n*   **Structural Segregation:** Each entity type (projects, experiments, inventory, etc.) is stored in its own top-level collection.\n*   **Access Modeling:** Path-based ownership is used for projects and experiments, while other entities are managed at the top-level.\n*   **QAPs (Rules are not Filters):** The segregation into separate collections based on entity type allows for secure list operations as each collection has a homogeneous security posture.\n\n\nThis structure is designed to provide a secure and scalable foundation for LabFlow, enabling efficient management of lab operations while adhering to best practices for Firestore security and performance."
+    ]
   }
 }
-    

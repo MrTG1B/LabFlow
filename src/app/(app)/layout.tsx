@@ -1,3 +1,7 @@
+
+'use client';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Header from "@/components/header";
 import SidebarNav from "@/components/sidebar-nav";
 import {
@@ -6,12 +10,32 @@ import {
   SidebarInset,
 } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/toaster";
+import { useUser } from '@/firebase';
+import { Loader2 } from 'lucide-react';
+
 
 export default function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/');
+    }
+  }, [user, isUserLoading, router]);
+
+  if (isUserLoading || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider>
       <Sidebar>
