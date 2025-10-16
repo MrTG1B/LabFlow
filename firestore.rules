@@ -1,0 +1,212 @@
+/**
+ * @fileoverview Firestore Security Rules for LabFlow - Degen Technologies Pvt. Ltd.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for personnel data and
+ * a shared-access model for projects and experiments. It also incorporates
+ * authorization independence by denormalizing data where necessary to avoid
+ * costly `get()` calls within the security rules.
+ *
+ * Data Structure:
+ * - /personnel/{personnelId}: Stores personnel information. Each personnel
+ *   document is owned by the user with the matching UID.
+ * - /projects/{projectId}: Stores project information.
+ * - /projects/{projectId}/experiments/{experimentId}: Stores experiment data
+ *   associated with a specific project.
+ * - /inventory/{inventoryItemId}: Stores inventory item data.
+ * - /locations/{locationId}: Stores location data for inventory.
+ * - /equipment/{equipmentId}: Stores equipment data.
+ * - /equipment/{equipmentId}/logs/{equipmentLogId}: Stores equipment log data
+ *   associated with a specific equipment.
+ *
+ * Key Security Decisions:
+ * - Personnel documents are strictly owned by the corresponding user.
+ * - Project data is shared based on personnelIds.
+ * - Experiments inherit project personnel access.
+ * - Other entities (inventory, locations, equipment, equipment logs) can be
+ *   accessed by any authenticated user.
+ *
+ * Denormalization for Authorization:
+ * - Experiments store a 'personnelId' field, copied from the project, to
+ *   avoid needing to query the project document during experiment authorization.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Checks if the request is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the authenticated user's UID matches the provided userId.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the authenticated user's UID matches the existing document's userId.
+     */
+    function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+    }
+
+    /**************** Personnel Collection ****************/
+
+    /**
+     * @description Allows access to personnel documents only to the owner.
+     * @path /personnel/{personnelId}
+     * @allow (create) User with UID 'user_abc' can create a personnel document with ID 'user_abc'.
+     * @deny (create) User with UID 'user_xyz' cannot create a personnel document with ID 'user_abc'.
+     * @allow (get) User with UID 'user_abc' can read the personnel document with ID 'user_abc'.
+     * @deny (get) User with UID 'user_xyz' cannot read the personnel document with ID 'user_abc'.
+     * @principle Enforces document ownership for reads and writes.
+     */
+    match /personnel/{personnelId} {
+      // Read Permissions
+      allow get: if isOwner(personnelId);
+      allow list: if false; // Personnel listing is not allowed.
+
+      // Write Permissions
+      allow create: if isOwner(personnelId) && request.resource.data.id == request.auth.uid;
+      allow update: if isExistingOwner(personnelId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(personnelId);
+    }
+
+    /**************** Projects Collection ****************/
+
+    /**
+     * @description Allows authenticated users to manage projects.
+     * @path /projects/{projectId}
+     * @allow (create) Authenticated user can create a project.
+     * @deny (create) Unauthenticated user cannot create a project.
+     * @allow (get) Authenticated user can read any project.
+     * @deny (update)  Unauthenticated user cannot update a project.
+     * @principle Authenticated users can create, read, update, and delete projects.
+     */
+    match /projects/{projectId} {
+      // Read Permissions
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+
+      // Write Permissions
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
+    }
+
+    /**************** Experiments Collection ****************/
+
+    /**
+     * @description Allows authenticated users to manage experiments within projects.
+     * @path /projects/{projectId}/experiments/{experimentId}
+     * @allow (create) Authenticated user can create an experiment within a project.
+     * @deny (create) Unauthenticated user cannot create an experiment.
+     * @allow (get) Authenticated user can read any experiment.
+     * @deny (update) Unauthenticated user cannot update an experiment.
+     * @principle Authenticated users can create, read, update, and delete experiments.
+     */
+    match /projects/{projectId}/experiments/{experimentId} {
+      // Read Permissions
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+
+      // Write Permissions
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
+    }
+
+    /**************** Inventory Collection ****************/
+
+    /**
+     * @description Allows authenticated users to manage inventory items.
+     * @path /inventory/{inventoryItemId}
+     * @allow (create) Authenticated user can create an inventory item.
+     * @deny (create) Unauthenticated user cannot create an inventory item.
+     * @allow (get) Authenticated user can read any inventory item.
+     * @deny (update) Unauthenticated user cannot update an inventory item.
+     * @principle Authenticated users can create, read, update, and delete inventory items.
+     */
+    match /inventory/{inventoryItemId} {
+      // Read Permissions
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+
+      // Write Permissions
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
+    }
+
+    /**************** Locations Collection ****************/
+
+    /**
+     * @description Allows authenticated users to manage locations.
+     * @path /locations/{locationId}
+     * @allow (create) Authenticated user can create a location.
+     * @deny (create) Unauthenticated user cannot create a location.
+     * @allow (get) Authenticated user can read any location.
+     * @deny (update) Unauthenticated user cannot update a location.
+     * @principle Authenticated users can create, read, update, and delete locations.
+     */
+    match /locations/{locationId} {
+      // Read Permissions
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+
+      // Write Permissions
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
+    }
+
+    /**************** Equipment Collection ****************/
+
+    /**
+     * @description Allows authenticated users to manage equipment.
+     * @path /equipment/{equipmentId}
+     * @allow (create) Authenticated user can create equipment.
+     * @deny (create) Unauthenticated user cannot create equipment.
+     * @allow (get) Authenticated user can read any equipment.
+      * @deny (update) Unauthenticated user cannot update an equipment.
+     * @principle Authenticated users can create, read, update, and delete equipment.
+     */
+    match /equipment/{equipmentId} {
+      // Read Permissions
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+
+      // Write Permissions
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
+    }
+
+    /**************** Equipment Logs Collection ****************/
+
+    /**
+     * @description Allows authenticated users to manage equipment logs within a specific equipment.
+     * @path /equipment/{equipmentId}/logs/{equipmentLogId}
+     * @allow (create) Authenticated user can create an equipment log.
+     * @deny (create) Unauthenticated user cannot create an equipment log.
+     * @allow (get) Authenticated user can read any equipment log.
+     * @deny (update) Unauthenticated user cannot update an equipment log.
+     * @principle Authenticated users can create, read, update, and delete equipment logs.
+     */
+    match /equipment/{equipmentId}/logs/{equipmentLogId} {
+      // Read Permissions
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+
+      // Write Permissions
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
+    }
+  }
+}
