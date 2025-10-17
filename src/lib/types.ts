@@ -29,9 +29,16 @@ export type InventoryItem = {
   createdAt?: string;
 };
 
+export const vendorTypes = ["Online", "Offline"] as const;
+export type VendorType = typeof vendorTypes[number];
+
 export type Vendor = {
   id: string;
   name: string;
+  type?: VendorType;
+  website?: string;
+  phone?: string;
+  address?: string;
 };
 
 export type Equipment = {

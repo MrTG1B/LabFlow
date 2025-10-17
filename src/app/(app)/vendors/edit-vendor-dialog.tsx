@@ -22,16 +22,28 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
-import type { Vendor } from '@/lib/types';
+import { Vendor, vendorTypes } from '@/lib/types';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
+  type: z.enum(vendorTypes).optional(),
+  website: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
+  phone: z.string().optional(),
+  address: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -63,8 +75,12 @@ export function EditVendorDialog({ vendor, open, onOpenChange }: EditVendorDialo
 
     try {
       const vendorRef = doc(firestore, 'vendors', vendor.id);
-      const updatedVendor = {
+      const updatedVendor: Partial<Vendor> = {
         name: values.name,
+        type: values.type,
+        website: values.website,
+        phone: values.phone,
+        address: values.address,
       };
       
       await setDocumentNonBlocking(vendorRef, updatedVendor, { merge: true });
@@ -90,11 +106,11 @@ export function EditVendorDialog({ vendor, open, onOpenChange }: EditVendorDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Edit Vendor</DialogTitle>
             <DialogDescription>
-              Update the vendor's name.
+              Update the vendor's details.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -107,6 +123,69 @@ export function EditVendorDialog({ vendor, open, onOpenChange }: EditVendorDialo
                     <FormLabel>Vendor Name</FormLabel>
                     <FormControl>
                       <Input placeholder="e.g. Digi-Key" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Type (Optional)</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select vendor type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {vendorTypes.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="website"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Website (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone Number (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="+1 (123) 456-7890" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Address (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="123 Main St, Anytown, USA" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

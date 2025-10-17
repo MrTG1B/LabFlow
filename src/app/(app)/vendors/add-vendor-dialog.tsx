@@ -23,16 +23,28 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { PlusCircle, Loader2 } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
-import type { Vendor } from '@/lib/types';
+import { Vendor, vendorTypes, VendorType } from '@/lib/types';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
+  type: z.enum(vendorTypes).optional(),
+  website: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
+  phone: z.string().optional(),
+  address: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -48,6 +60,9 @@ export function AddVendorDialog() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
+      website: '',
+      phone: '',
+      address: '',
     },
   });
 
@@ -58,7 +73,7 @@ export function AddVendorDialog() {
     try {
       const vendorsCol = collection(firestore, 'vendors');
       const newVendor: Omit<Vendor, 'id'> = {
-        name: values.name,
+        ...values,
       };
       await addDocumentNonBlocking(vendorsCol, newVendor);
 
@@ -92,11 +107,11 @@ export function AddVendorDialog() {
             </span>
           </Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Add New Vendor</DialogTitle>
             <DialogDescription>
-              Enter the name of the new vendor.
+              Enter the details of the new vendor.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -109,6 +124,69 @@ export function AddVendorDialog() {
                     <FormLabel>Vendor Name</FormLabel>
                     <FormControl>
                       <Input placeholder="e.g. Digi-Key" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Type (Optional)</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select vendor type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {vendorTypes.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="website"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Website (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone Number (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="+1 (123) 456-7890" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Address (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="123 Main St, Anytown, USA" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

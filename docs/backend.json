@@ -101,6 +101,24 @@
         "name": {
           "type": "string",
           "description": "Name of the vendor."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["Online", "Offline"],
+          "description": "The type of vendor."
+        },
+        "website": {
+          "type": "string",
+          "format": "uri",
+          "description": "The vendor's website URL."
+        },
+        "phone": {
+          "type": "string",
+          "description": "The vendor's phone number."
+        },
+        "address": {
+          "type": "string",
+          "description": "The physical address of the vendor."
         }
       },
       "required": ["id", "name"]
