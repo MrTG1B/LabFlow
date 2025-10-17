@@ -184,9 +184,6 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
                     </FormItem>
                   )}
                 />
-              </div>
-
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="value"
@@ -213,9 +210,6 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
                     </FormItem>
                   )}
                 />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="unit"
@@ -242,47 +236,45 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
                     </FormItem>
                   )}
                 />
-              </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     <FormField
-                        control={form.control}
-                        name="vendorId"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Vendor (Optional)</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value || 'None'}>
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select a vendor" />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="None">None</SelectItem>
-                                    {vendors?.map((vendor) => (
-                                        <SelectItem key={vendor.id} value={vendor.id}>
-                                            {vendor.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                    <FormField
-                        control={form.control}
-                        name="rate"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Rate (per unit, Optional)</FormLabel>
+                 <FormField
+                    control={form.control}
+                    name="vendorId"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Vendor (Optional)</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value || 'None'}>
                             <FormControl>
-                                <Input type="number" placeholder="0.00" {...field} value={field.value ?? ''} onChange={field.onChange} />
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a vendor" />
+                            </SelectTrigger>
                             </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
+                            <SelectContent>
+                                <SelectItem value="None">None</SelectItem>
+                                {vendors?.map((vendor) => (
+                                    <SelectItem key={vendor.id} value={vendor.id}>
+                                        {vendor.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
                     />
-                </div>
+                <FormField
+                    control={form.control}
+                    name="rate"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Rate (per unit, Optional)</FormLabel>
+                        <FormControl>
+                            <Input type="number" placeholder="0.00" {...field} value={field.value ?? ''} onChange={field.onChange} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+              </div>
               
               <FormField
                 control={form.control}
