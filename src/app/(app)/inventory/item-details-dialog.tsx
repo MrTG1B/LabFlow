@@ -82,7 +82,7 @@ export function ItemDetailsDialog({ item, open, onOpenChange }: ItemDetailsDialo
                 {isAI && <Sparkles className="h-4 w-4 text-primary" />}
                 {label}
             </dt>
-            <dd className="font-medium">{value || 'No description provided.'}</dd>
+            <dd className="font-medium whitespace-pre-wrap">{value || 'No description provided.'}</dd>
         </div>
     );
 
@@ -100,12 +100,12 @@ export function ItemDetailsDialog({ item, open, onOpenChange }: ItemDetailsDialo
                     <div className='px-6'>
                         {item.imageUrl && (
                             <div className='relative w-full aspect-[16/10] rounded-md overflow-hidden mb-4 border'>
-                                <Image src={item.imageUrl} alt={item.name} layout="fill" objectFit="cover" />
+                                <Image src={item.imageUrl} alt={item.name} fill={true} objectFit="cover" />
                             </div>
                         )}
                         <dl>
                             {renderDetailRow("Type", item.type)}
-                            {renderDetailRow("Quantity", `${item.quantity} ${item.unit}`)}
+                            {renderDetailRow("Quantity", item.quantity ? `${item.quantity} ${item.unit || ''}`.trim() : 'N/A')}
                             {renderDetailRow("Value", item.value)}
                             {renderDetailRow("Part Number", item.partNumber)}
                             {renderDetailRow("Vendor", vendor?.name)}
@@ -118,9 +118,11 @@ export function ItemDetailsDialog({ item, open, onOpenChange }: ItemDetailsDialo
                             )}
                             {enhancedDescription && renderDescriptionRow("AI Description", enhancedDescription, true)}
                         </dl>
-                        <div className="mt-4 flex items-center justify-center bg-white p-2 rounded-md">
-                            <Barcode value={item.barcode} height={60} />
-                        </div>
+                        {item.barcode && (
+                            <div className="mt-4 flex items-center justify-center bg-white p-2 rounded-md">
+                                <Barcode value={item.barcode} height={60} />
+                            </div>
+                        )}
                     </div>
                 </ScrollArea>
                 <DialogFooter className="p-6 pt-4 border-t">
