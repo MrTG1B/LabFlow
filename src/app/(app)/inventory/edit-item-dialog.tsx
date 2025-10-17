@@ -98,10 +98,18 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
         ...values,
       };
 
-      if (values.vendorId === 'None') {
+      // Handle optional vendorId
+      if (values.vendorId === 'None' || !values.vendorId) {
         delete updatedItem.vendorId;
       } else {
         updatedItem.vendorId = values.vendorId;
+      }
+      
+      // Handle optional rate
+      if (isNaN(values.rate as number) || values.rate === undefined) {
+          delete updatedItem.rate;
+      } else {
+          updatedItem.rate = values.rate;
       }
       
       setDocumentNonBlocking(itemRef, updatedItem, { merge: true });
