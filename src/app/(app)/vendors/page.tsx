@@ -18,30 +18,19 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useCollection, useUser } from '@/firebase';
-import { collection, query, orderBy, doc } from 'firebase/firestore';
+import { collection, query, orderBy } from 'firebase/firestore';
 import { useFirestore, useMemoFirebase } from '@/firebase/provider';
 import type { Vendor, VendorType } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AddVendorDialog } from './add-vendor-dialog';
 import { EditVendorDialog } from './edit-vendor-dialog';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2 } from 'lucide-react';
-import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+import { Edit, View } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { VendorDetailsDialog } from './vendor-details-dialog';
 
 const typeColorMap: Record<VendorType, string> = {
     'Online': 'bg-green-500/20 text-green-500 border-green-500/50',
@@ -52,8 +41,8 @@ const typeColorMap: Record<VendorType, string> = {
 export default function VendorsPage() {
   const firestore = useFirestore();
   const { isUserLoading } = useUser();
-  const { toast } = useToast();
   
+  const [viewingVendor, setViewingVendor] = useState<Vendor | null>(null);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
 
   const vendorsQuery = useMemoFirebase(() => {
@@ -64,16 +53,6 @@ export default function VendorsPage() {
   const { data: vendors, isLoading } = useCollection<Vendor>(vendorsQuery);
   
   const isDataLoading = isLoading || isUserLoading;
-
-  const handleDeleteVendor = (vendor: Vendor) => {
-    if (!firestore) return;
-    const vendorRef = doc(firestore, 'vendors', vendor.id);
-    deleteDocumentNonBlocking(vendorRef);
-    toast({
-        title: "Vendor deleted",
-        description: `"${vendor.name}" has been deleted.`,
-    });
-  };
 
   return (
     <>
@@ -135,33 +114,14 @@ export default function VendorsPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-2 justify-end">
+                      <Button variant="ghost" size="icon" onClick={() => setViewingVendor(vendor)}>
+                        <View className="h-4 w-4" />
+                        <span className="sr-only">View</span>
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => setEditingVendor(vendor)}>
                         <Edit className="h-4 w-4" />
                         <span className="sr-only">Edit</span>
                       </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                                <span className="sr-only">Delete</span>
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently delete the vendor
-                                    "{vendor.name}".
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteVendor(vendor)}>
-                                    Delete
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -170,6 +130,14 @@ export default function VendorsPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {viewingVendor && (
+        <VendorDetailsDialog
+          vendor={viewingVendor}
+          open={!!viewingVendor}
+          onOpenChange={(isOpen) => !isOpen && setViewingVendor(null)}
+        />
+      )}
 
       {editingVendor && (
         <EditVendorDialog
