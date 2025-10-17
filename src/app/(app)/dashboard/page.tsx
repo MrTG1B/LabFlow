@@ -67,7 +67,7 @@ export default function Dashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {isLoading ? <Skeleton className="h-8 w-24" /> : <div className="text-2xl font-bold">${stats.totalValue.toFixed(2)}</div>}
+            {isLoading ? <Skeleton className="h-8 w-24" /> : <div className="text-2xl font-bold">₹{stats.totalValue.toFixed(2)}</div>}
             <p className="text-xs text-muted-foreground">
               Based on quantity and rate
             </p>

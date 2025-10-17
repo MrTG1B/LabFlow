@@ -102,7 +102,7 @@ export function ItemDetailsDialog({ item, open, onOpenChange }: ItemDetailsDialo
                             </TableRow>
                              <TableRow>
                                 <TableCell className="font-semibold">Rate</TableCell>
-                                <TableCell>{item.rate ? `$${item.rate.toFixed(2)}` : 'N/A'}</TableCell>
+                                <TableCell>{item.rate ? `₹${item.rate.toFixed(2)}` : 'N/A'}</TableCell>
                             </TableRow>
                             <TableRow>
                                 <TableCell className="font-semibold align-top">Description</TableCell>
