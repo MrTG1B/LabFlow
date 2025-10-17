@@ -93,10 +93,16 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
 
     try {
       const itemRef = doc(firestore, 'inventory', item.id);
+      
       const updatedItem: Partial<InventoryItem> = {
         ...values,
-        vendorId: values.vendorId === 'None' ? undefined : values.vendorId,
       };
+
+      if (values.vendorId === 'None') {
+        delete updatedItem.vendorId;
+      } else {
+        updatedItem.vendorId = values.vendorId;
+      }
       
       setDocumentNonBlocking(itemRef, updatedItem, { merge: true });
 
@@ -313,5 +319,3 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
     </Dialog>
   );
 }
-
-    
