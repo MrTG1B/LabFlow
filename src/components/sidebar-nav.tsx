@@ -1,3 +1,4 @@
+
 "use client"
 
 import Link from "next/link";
@@ -13,16 +14,25 @@ import {
   Boxes,
   BookOpen,
   CircuitBoard,
+  ScanLine,
 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
-const links = [
+const desktopLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/inventory", label: "Inventory", icon: Boxes },
   { href: "/literature-review", label: "AI Review", icon: BookOpen },
 ];
 
+const mobileLinks = [
+    { href: "/scan", label: "Scan", icon: ScanLine },
+    { href: "/inventory", label: "Inventory", icon: Boxes },
+    { href: "/literature-review", label: "AI Review", icon: BookOpen },
+]
+
 export default function SidebarNav({ isMobile = false }) {
     const pathname = usePathname();
+    const links = useIsMobile() ? mobileLinks : desktopLinks;
 
     const navContent = (
         <>

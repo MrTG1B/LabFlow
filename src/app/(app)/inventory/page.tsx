@@ -57,6 +57,7 @@ export default function InventoryPage() {
               <TableHead>Type</TableHead>
               <TableHead>Quantity</TableHead>
               <TableHead>Value</TableHead>
+              <TableHead>Barcode</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -67,12 +68,13 @@ export default function InventoryPage() {
                   <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-36" /></TableCell>
                 </TableRow>
               ))
             )}
             {!isDataLoading && inventory?.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="text-center">
+                <TableCell colSpan={5} className="text-center">
                   No inventory items found. Add one to get started.
                 </TableCell>
               </TableRow>
@@ -89,6 +91,7 @@ export default function InventoryPage() {
                   {item.quantity} {item.unit}
                 </TableCell>
                 <TableCell>{item.value}</TableCell>
+                <TableCell className="font-mono text-xs">{item.barcode}</TableCell>
               </TableRow>
             ))}
           </TableBody>

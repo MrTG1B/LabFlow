@@ -62,9 +62,13 @@
         "partNumber": {
           "type": "string",
           "description": "The manufacturer part number."
+        },
+        "barcode": {
+          "type": "string",
+          "description": "A unique barcode identifier for the inventory item."
         }
       },
-      "required": ["id", "name", "quantity", "unit", "type"]
+      "required": ["id", "name", "quantity", "unit", "type", "barcode"]
     }
   },
   "auth": {

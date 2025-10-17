@@ -37,6 +37,7 @@ import { collection } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 import { InventoryItem, inventoryItemTypes } from '@/lib/types';
+import { v4 as uuidv4 } from 'uuid';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -82,6 +83,7 @@ export function AddItemDialog() {
         value: values.value,
         partNumber: values.partNumber,
         description: values.description,
+        barcode: uuidv4(),
       };
       await addDocumentNonBlocking(inventoryCol, newItem);
 

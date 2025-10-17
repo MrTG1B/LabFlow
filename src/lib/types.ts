@@ -19,6 +19,7 @@ export type InventoryItem = {
   value?: string;
   partNumber?: string;
   description?: string;
+  barcode: string;
 };
 
 export type Equipment = {

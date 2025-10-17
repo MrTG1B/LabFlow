@@ -12,6 +12,7 @@ import {
 import { Toaster } from "@/components/ui/toaster";
 import { useUser } from '@/firebase';
 import { Loader2 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 export default function AppLayout({
@@ -21,12 +22,18 @@ export default function AppLayout({
 }) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push('/');
     }
-  }, [user, isUserLoading, router]);
+    if (!isUserLoading && user && isMobile) {
+        router.push('/scan');
+    } else if (!isUserLoading && user && !isMobile) {
+        router.push('/dashboard');
+    }
+  }, [user, isUserLoading, router, isMobile]);
 
   if (isUserLoading || !user) {
     return (
