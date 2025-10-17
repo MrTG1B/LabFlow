@@ -26,15 +26,14 @@ import { AddVendorDialog } from './add-vendor-dialog';
 import { EditVendorDialog } from './edit-vendor-dialog';
 import { Button } from '@/components/ui/button';
 import { Edit, View } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { VendorDetailsDialog } from './vendor-details-dialog';
 
 const typeColorMap: Record<VendorType, string> = {
-    'Online': 'bg-green-500/20 text-green-500 border-green-500/50',
-    'Offline': 'bg-blue-500/20 text-blue-500 border-blue-500/50',
+    'Online': 'bg-green-900/50 text-green-300 border-green-500/50',
+    'Offline': 'bg-blue-900/50 text-blue-300 border-blue-500/50',
 };
 
 
@@ -65,7 +64,7 @@ export default function VendorsPage() {
 
   return (
     <>
-      <Card>
+      <Card className="animate-in">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Vendors</CardTitle>
@@ -104,7 +103,7 @@ export default function VendorsPage() {
                 </TableRow>
               )}
               {!isDataLoading && vendors?.map((vendor) => (
-                <TableRow key={vendor.id}>
+                <TableRow key={vendor.id} className="transition-colors hover:bg-muted/50">
                   <TableCell className="font-medium">{vendor.name}</TableCell>
                   <TableCell>
                     {vendor.type && (

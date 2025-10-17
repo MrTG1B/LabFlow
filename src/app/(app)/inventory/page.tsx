@@ -32,11 +32,11 @@ import { View, Edit } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 const typeColorMap: Record<InventoryItemType, string> = {
-    'Capacitor': 'bg-blue-500/20 text-blue-500 border-blue-500/50',
-    'Resistor': 'bg-green-500/20 text-green-500 border-green-500/50',
-    'IC': 'bg-purple-500/20 text-purple-500 border-purple-500/50',
-    'Connector': 'bg-orange-500/20 text-orange-500 border-orange-500/50',
-    'Misc': 'bg-gray-500/20 text-gray-500 border-gray-500/50',
+    'Capacitor': 'bg-blue-900/50 text-blue-300 border-blue-500/50',
+    'Resistor': 'bg-green-900/50 text-green-300 border-green-500/50',
+    'IC': 'bg-purple-900/50 text-purple-300 border-purple-500/50',
+    'Connector': 'bg-orange-900/50 text-orange-300 border-orange-500/50',
+    'Misc': 'bg-gray-700/50 text-gray-300 border-gray-500/50',
 };
 
 export default function InventoryPage() {
@@ -67,7 +67,7 @@ export default function InventoryPage() {
 
   return (
     <>
-      <Card>
+      <Card className="animate-in">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Inventory</CardTitle>
@@ -110,14 +110,14 @@ export default function InventoryPage() {
                 </TableRow>
               )}
               {!isDataLoading && inventory?.map((item) => (
-                <TableRow key={item.id}>
+                <TableRow key={item.id} className="transition-colors hover:bg-muted/50">
                   <TableCell className="font-medium">{item.name}</TableCell>
                   <TableCell>
                     <Badge variant={'outline'} className={cn(typeColorMap[item.type])}>
                       {item.type}
                     </Badge>
                   </TableCell>
-                  <TableCell className={cn(item.quantity !== undefined && item.quantity < 10 ? "text-red-500" : "")}>
+                  <TableCell className={cn(item.quantity !== undefined && item.quantity < 10 ? "text-red-400" : "")}>
                     {item.quantity} {item.unit}
                   </TableCell>
                   <TableCell>{item.value}</TableCell>
