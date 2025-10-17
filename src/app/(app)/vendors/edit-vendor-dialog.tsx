@@ -80,7 +80,11 @@ export function EditVendorDialog({ vendor, open, onOpenChange }: EditVendorDialo
       const updatedVendor: Partial<Vendor> = {
         ...values,
         updatedAt: now,
-        updatedBy: { uid: user.uid, displayName: user.displayName || user.email! },
+        updatedBy: { 
+            uid: user.uid, 
+            displayName: user.displayName,
+            post: user.post
+        },
       };
       
       await setDocumentNonBlocking(vendorRef, updatedVendor, { merge: true });

@@ -31,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError, useUser } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { doc, collection, query, orderBy } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
@@ -90,52 +90,49 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
   async function onSubmit(values: FormValues) {
     if (!firestore || !user) return;
     setIsSubmitting(true);
-
+    
     try {
-      const itemRef = doc(firestore, 'inventory', item.id);
-      
-      const updatedItem: Partial<InventoryItem> = {
-        ...values,
-        updatedAt: new Date().toISOString(),
-        updatedBy: { uid: user.uid, displayName: user.displayName || user.email! },
-      };
+        const itemRef = doc(firestore, 'inventory', item.id);
+        
+        const updatedItemData: Partial<InventoryItem> = {
+            ...values,
+            updatedAt: new Date().toISOString(),
+            updatedBy: { 
+                uid: user.uid, 
+                displayName: user.displayName,
+                post: user.post
+            },
+        };
 
-      // Handle optional vendorId
-      if (values.vendorId === 'None' || !values.vendorId) {
-        delete updatedItem.vendorId;
-      } else {
-        updatedItem.vendorId = values.vendorId;
-      }
-      
-      // Handle optional rate
-      if (isNaN(values.rate as number) || values.rate === undefined) {
-          delete updatedItem.rate;
-      } else {
-          updatedItem.rate = values.rate;
-      }
-      
-      setDocumentNonBlocking(itemRef, updatedItem, { merge: true });
+        if (!values.vendorId || values.vendorId === 'None') {
+            delete updatedItemData.vendorId;
+        }
 
-      toast({
-        title: 'Success!',
-        description: `"${values.name}" has been updated.`,
-      });
+        if (values.rate === undefined || isNaN(values.rate)) {
+            delete updatedItemData.rate;
+        }
 
-      form.reset();
-      onOpenChange(false);
+        setDocumentNonBlocking(itemRef, updatedItemData, { merge: true });
+
+        toast({
+            title: 'Success!',
+            description: `"${values.name}" has been updated.`,
+        });
+
+        form.reset();
+        onOpenChange(false);
     } catch (error) {
-      // This path should ideally not be taken due to non-blocking nature,
-      // but is kept for safety.
-      console.error('Error updating document: ', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Could not update the item. Please try again.',
-      });
+        console.error('Error updating document: ', error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Could not update the item. Please try again.',
+        });
     } finally {
-      setIsSubmitting(false);
+        setIsSubmitting(false);
     }
-  }
+}
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -55,6 +55,15 @@ export default function InventoryPage() {
   const { data: inventory, isLoading } = useCollection<InventoryItem>(inventoryQuery);
   
   const isDataLoading = isLoading || isUserLoading;
+  
+  const getUpdatedByLabel = (item: InventoryItem) => {
+    if (!item.updatedBy) return '';
+    let label = item.updatedBy.displayName;
+    if (item.updatedBy.post) {
+        label += ` (${item.updatedBy.post})`;
+    }
+    return label;
+  }
 
   return (
     <>
@@ -116,7 +125,7 @@ export default function InventoryPage() {
                     {item.updatedAt && (
                       <div className="text-xs text-muted-foreground">
                         <p>{formatDistanceToNow(new Date(item.updatedAt), { addSuffix: true })}</p>
-                        <p>by {item.updatedBy?.displayName}</p>
+                        <p>by {getUpdatedByLabel(item)}</p>
                       </div>
                     )}
                   </TableCell>

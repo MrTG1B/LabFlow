@@ -13,6 +13,12 @@ export const inventoryItemTypes = ["Capacitor", "Resistor", "IC", "Connector", "
 
 export type InventoryItemType = typeof inventoryItemTypes[number];
 
+type UpdateUser = {
+    uid: string;
+    displayName: string;
+    post?: string;
+}
+
 export type InventoryItem = {
   id: string;
   name:string;
@@ -28,7 +34,7 @@ export type InventoryItem = {
   rate?: number;
   createdAt?: string;
   updatedAt?: string;
-  updatedBy?: User | { uid: string, displayName: string };
+  updatedBy?: UpdateUser;
 };
 
 export const vendorTypes = ["Online", "Offline"] as const;
@@ -42,7 +48,7 @@ export type Vendor = {
   phone?: string;
   address?: string;
   updatedAt?: string;
-  updatedBy?: User | { uid: string, displayName: string };
+  updatedBy?: UpdateUser;
 };
 
 export type Equipment = {

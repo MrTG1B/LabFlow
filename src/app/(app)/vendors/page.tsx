@@ -54,6 +54,15 @@ export default function VendorsPage() {
   
   const isDataLoading = isLoading || isUserLoading;
 
+  const getUpdatedByLabel = (vendor: Vendor) => {
+    if (!vendor.updatedBy) return '';
+    let label = vendor.updatedBy.displayName;
+    if (vendor.updatedBy.post) {
+        label += ` (${vendor.updatedBy.post})`;
+    }
+    return label;
+  }
+
   return (
     <>
       <Card>
@@ -108,7 +117,7 @@ export default function VendorsPage() {
                     {vendor.updatedAt && (
                       <div className="text-xs text-muted-foreground">
                         <p>{formatDistanceToNow(new Date(vendor.updatedAt), { addSuffix: true })}</p>
-                        <p>by {vendor.updatedBy?.displayName}</p>
+                        <p>by {getUpdatedByLabel(vendor)}</p>
                       </div>
                     )}
                   </TableCell>

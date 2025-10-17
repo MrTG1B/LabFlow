@@ -122,7 +122,11 @@ export function AddItemDialog() {
         barcode: barcode,
         createdAt: now,
         updatedAt: now,
-        updatedBy: { uid: user.uid, displayName: user.displayName || user.email! },
+        updatedBy: { 
+            uid: user.uid, 
+            displayName: user.displayName,
+            post: user.post
+        },
       };
       
       if (values.rate === undefined || isNaN(values.rate)) {
