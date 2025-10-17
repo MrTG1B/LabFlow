@@ -79,9 +79,14 @@
         "rate": {
             "type": "number",
             "description": "The cost per unit for this item."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the item was created."
         }
       },
-      "required": ["id", "name", "quantity", "unit", "type", "barcode"]
+      "required": ["id", "name", "type", "value"]
     },
     "Vendor": {
       "$schema": "http://json-schema.org/draft-07/schema#",

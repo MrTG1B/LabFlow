@@ -44,9 +44,9 @@ import { Textarea } from '@/components/ui/textarea';
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   type: z.enum(inventoryItemTypes, { required_error: 'Please select an item type.' }),
-  quantity: z.coerce.number().min(0, { message: 'Quantity cannot be negative.' }),
-  unit: z.string().min(1, { message: 'Unit is required.' }),
-  value: z.string().optional(),
+  value: z.string().min(1, { message: 'Value is required.' }),
+  quantity: z.coerce.number().optional(),
+  unit: z.string().optional(),
   partNumber: z.string().optional(),
   description: z.string().optional(),
   barcode: z.string().optional(),
@@ -77,9 +77,9 @@ export function AddItemDialog() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
+      value: '',
       quantity: 0,
       unit: 'pcs',
-      value: '',
       partNumber: '',
       description: '',
       barcode: '',
@@ -114,16 +114,9 @@ export function AddItemDialog() {
       const inventoryCol = collection(firestore, 'inventory');
       const barcode = values.barcode || uuidv4();
       const newItem: Omit<InventoryItem, 'id'> = {
-        name: values.name,
-        type: values.type,
-        quantity: values.quantity,
-        unit: values.unit,
-        value: values.value,
-        partNumber: values.partNumber,
-        description: values.description,
-        barcode: barcode,
+        ...values,
         vendorId: values.vendorId === 'None' ? undefined : values.vendorId,
-        rate: values.rate,
+        barcode: barcode,
         createdAt: new Date().toISOString(),
       };
       await addDocumentNonBlocking(inventoryCol, newItem);
@@ -208,36 +201,7 @@ export function AddItemDialog() {
                   )}
                 />
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="quantity"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Quantity</FormLabel>
-                      <FormControl>
-                        <Input type="number" placeholder="0" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="unit"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Unit</FormLabel>                      <FormControl>
-                        <Input placeholder="e.g. pcs, reels" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <FormField
                   control={form.control}
                   name="value"
@@ -253,10 +217,39 @@ export function AddItemDialog() {
                 />
                  <FormField
                   control={form.control}
+                  name="quantity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Quantity (Optional)</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="0" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="unit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Unit (Optional)</FormLabel>                      <FormControl>
+                        <Input placeholder="e.g. pcs, reels" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
                   name="partNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Part Number</FormLabel>
+                      <FormLabel>Part Number (Optional)</FormLabel>
                       <FormControl>
                         <Input placeholder="e.g. C0805C104K5RACTU" {...field} />
                       </FormControl>
@@ -272,7 +265,7 @@ export function AddItemDialog() {
                         name="vendorId"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Vendor</FormLabel>
+                            <FormLabel>Vendor (Optional)</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value || 'None'}>
                                 <FormControl>
                                 <SelectTrigger>
@@ -297,7 +290,7 @@ export function AddItemDialog() {
                         name="rate"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Rate (per unit)</FormLabel>
+                            <FormLabel>Rate (per unit, Optional)</FormLabel>
                             <FormControl>
                                 <Input type="number" placeholder="0.00" {...field} />
                             </FormControl>
@@ -326,7 +319,7 @@ export function AddItemDialog() {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>Description (Optional)</FormLabel>
                     <FormControl>
                       <Textarea placeholder="Item description" {...field} />
                     </FormControl>

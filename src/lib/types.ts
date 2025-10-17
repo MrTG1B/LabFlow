@@ -17,16 +17,16 @@ export type InventoryItem = {
   id: string;
   name:string;
   type: InventoryItemType;
-  quantity: number;
-  unit: string;
-  value?: string;
+  value: string;
+  quantity?: number;
+  unit?: string;
   partNumber?: string;
   description?: string;
-  barcode: string;
+  barcode?: string;
   imageUrl?: string;
   vendorId?: string;
   rate?: number;
-  createdAt: string;
+  createdAt?: string;
 };
 
 export type Vendor = {

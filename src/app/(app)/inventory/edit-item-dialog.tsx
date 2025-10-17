@@ -41,15 +41,15 @@ import { Textarea } from '@/components/ui/textarea';
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   type: z.enum(inventoryItemTypes, { required_error: 'Please select an item type.' }),
-  quantity: z.coerce.number().min(0, { message: 'Quantity cannot be negative.' }),
-  unit: z.string().min(1, { message: 'Unit is required.' }),
-  value: z.string().optional(),
+  value: z.string().min(1, { message: 'Value is required.' }),
+  quantity: z.coerce.number().optional(),
+  unit: z.string().optional(),
   partNumber: z.string().optional(),
   description: z.string().optional(),
-  barcode: z.string(),
+  barcode: z.string().optional(),
   vendorId: z.string().optional(),
   rate: z.coerce.number().optional(),
-  createdAt: z.string().optional(), // Keep existing createdAt
+  createdAt: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -170,36 +170,8 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
-                  control={form.control}
-                  name="quantity"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Quantity</FormLabel>
-                      <FormControl>
-                        <Input type="number" placeholder="0" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="unit"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Unit</FormLabel>                      <FormControl>
-                        <Input placeholder="e.g. pcs, reels" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <FormField
                   control={form.control}
                   name="value"
                   render={({ field }) => (
@@ -214,10 +186,38 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
                 />
                  <FormField
                   control={form.control}
+                  name="quantity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Quantity (Optional)</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="0" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="unit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Unit (Optional)</FormLabel>                      <FormControl>
+                        <Input placeholder="e.g. pcs, reels" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
                   name="partNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Part Number</FormLabel>
+                      <FormLabel>Part Number (Optional)</FormLabel>
                       <FormControl>
                         <Input placeholder="e.g. C0805C104K5RACTU" {...field} />
                       </FormControl>
@@ -232,7 +232,7 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
                         name="vendorId"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Vendor</FormLabel>
+                            <FormLabel>Vendor (Optional)</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value || 'None'}>
                                 <FormControl>
                                 <SelectTrigger>
@@ -257,7 +257,7 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
                         name="rate"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Rate (per unit)</FormLabel>
+                            <FormLabel>Rate (per unit, Optional)</FormLabel>
                             <FormControl>
                                 <Input type="number" placeholder="0.00" {...field} />
                             </FormControl>
@@ -272,7 +272,7 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
                 name="barcode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Barcode</FormLabel>
+                    <FormLabel>Barcode (Optional)</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -286,7 +286,7 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>Description (Optional)</FormLabel>
                     <FormControl>
                       <Textarea placeholder="Item description" {...field} />
                     </FormControl>
