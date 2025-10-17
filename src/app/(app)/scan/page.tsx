@@ -395,7 +395,7 @@ export default function ScanPage() {
           </DialogHeader>
           {scannedItem && (
             <ScrollArea className="flex-1 min-h-0">
-                <div className='px-6'>
+                <div className='px-6 pb-6'>
                     {capturedImage && (
                         <div className='relative w-full aspect-[16/10] rounded-md overflow-hidden my-4 border'>
                             <Image src={capturedImage} alt={scannedItem.name} layout="fill" objectFit="cover" />

@@ -170,7 +170,7 @@ export function AddItemDialog() {
             </span>
           </Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-3xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Add New Inventory Item</DialogTitle>
             <DialogDescription>
@@ -178,7 +178,7 @@ export function AddItemDialog() {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -237,7 +237,7 @@ export function AddItemDialog() {
                   name="quantity"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Quantity (Optional)</FormLabel>
+                      <FormLabel>Quantity</FormLabel>
                       <FormControl>
                         <Input type="number" placeholder="0" {...field} />
                       </FormControl>
@@ -254,7 +254,8 @@ export function AddItemDialog() {
                   name="unit"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Unit (Optional)</FormLabel>                      <FormControl>
+                      <FormLabel>Unit</FormLabel>                      
+                      <FormControl>
                         <Input placeholder="e.g. pcs, reels" {...field} />
                       </FormControl>
                       <FormMessage />
