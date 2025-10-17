@@ -1,24 +1,25 @@
+
 'use server';
 /**
  * @fileOverview An AI-powered scientific paper summarizer.
  * This file defines the server-side logic for the AI summarization flow.
  *
  * - summarizePaperFlow - The Genkit flow that performs the summarization.
- * - SummarizePaperInputSchema - The Zod schema for the flow's input.
- * - SummarizePaperOutputSchema - The Zod schema for the flow's output.
+ * - SummarizePaperInput - The Zod schema for the flow's input.
+ * - SummarizePaperOutput - The Zod schema for the flow's output.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const SummarizePaperInputSchema = z.object({
+const SummarizePaperInputSchema = z.object({
   paperText: z
     .string()
     .describe('The text of the scientific paper to summarize.'),
 });
 export type SummarizePaperInput = z.infer<typeof SummarizePaperInputSchema>;
 
-export const SummarizePaperOutputSchema = z.object({
+const SummarizePaperOutputSchema = z.object({
   summary: z.string().describe('The summary of the scientific paper.'),
 });
 export type SummarizePaperOutput = z.infer<typeof SummarizePaperOutputSchema>;

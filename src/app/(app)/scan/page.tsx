@@ -71,6 +71,36 @@ export default function ScanPage() {
   const firestore = useFirestore();
   const storage = useStorage();
 
+  const stopCameraStream = () => {
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach((track) => track.stop());
+        videoRef.current.srcObject = null;
+      }
+    };
+  
+  const startCameraStream = useCallback(async (isCapture:boolean) => {
+    stopCameraStream(); // Ensure any existing stream is stopped
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: isCapture ? 'user' : 'environment' } });
+        setHasCameraPermission(true);
+        if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+        }
+        if(!isCapture) {
+            setIsScanning(true);
+        }
+    } catch (error) {
+        console.error('Error accessing camera:', error);
+        setHasCameraPermission(false);
+        toast({
+            variant: 'destructive',
+            title: 'Camera Access Denied',
+            description: 'Please enable camera permissions in your browser settings to use this feature.',
+        });
+    }
+  }, [toast]);
+
   const enhanceItemDescription = useCallback(async (item: InventoryItem) => {
     if (!item.description || item.description.length < 20) {
       setIsEnhancing(true);
@@ -200,7 +230,6 @@ export default function ScanPage() {
             const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
             setCapturedImage(dataUrl);
             setIsCaptureMode(false);
-            setIsScanning(true);
         }
     }
   };
@@ -218,43 +247,28 @@ export default function ScanPage() {
         return;
       }
       
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        setHasCameraPermission(true);
+      startCameraStream(false);
 
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-
-        if (window.BarcodeDetector) {
-            setIsScanning(true); // Start scanning after permission is granted
-        } else {
-            toast({
-                variant: 'destructive',
-                title: 'Unsupported Browser',
-                description: 'Barcode detection is not supported in your browser.',
-            });
-        }
-      } catch (error) {
-        console.error('Error accessing camera:', error);
-        setHasCameraPermission(false);
-        toast({
-          variant: 'destructive',
-          title: 'Camera Access Denied',
-          description: 'Please enable camera permissions in your browser settings to use this feature.',
-        });
+      if (!window.BarcodeDetector) {
+          toast({
+              variant: 'destructive',
+              title: 'Unsupported Browser',
+              description: 'Barcode detection is not supported in your browser.',
+          });
       }
     };
 
-    getCameraPermission();
+    if (isCaptureMode) {
+        startCameraStream(true);
+    } else {
+        getCameraPermission();
+    }
+
 
     return () => {
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach((track) => track.stop());
-      }
+      stopCameraStream();
     };
-  }, [toast]);
+  }, [toast, isCaptureMode, startCameraStream]);
 
   // Effect for barcode detection interval, controlled by isScanning state
   useEffect(() => {
@@ -432,7 +446,7 @@ export default function ScanPage() {
                                 </Button>
                              </div>
                         ) : (
-                            <Button variant="outline" onClick={() => { setIsScanning(false); setIsCaptureMode(true);}} disabled={isSaving}>
+                            <Button variant="outline" onClick={() => { setIsCaptureMode(true);}} disabled={isSaving}>
                                 <ImagePlus className="mr-2 h-4 w-4" />
                                 Add Image
                             </Button>
@@ -440,7 +454,7 @@ export default function ScanPage() {
                     </div>
                 </div>
             </div>
-            <DialogFooter className='gap-2'>
+            <DialogFooter className='gap-2 sm:justify-between'>
                 <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>Cancel</Button>
                 <Button onClick={handleSave} disabled={isSaving}>
                     {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Save Changes'}
@@ -449,7 +463,7 @@ export default function ScanPage() {
         </DialogContent>
       </Dialog>
 
-       <Dialog open={isCaptureMode} onOpenChange={(open) => { if (!open) { setIsCaptureMode(false); setIsScanning(true); } }}>
+       <Dialog open={isCaptureMode} onOpenChange={(open) => { if (!open) { setIsCaptureMode(false); } }}>
             <DialogContent className="max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>Capture Component Image</DialogTitle>
@@ -458,6 +472,9 @@ export default function ScanPage() {
                     <video ref={videoRef} className="h-full w-full object-cover" autoPlay playsInline muted />
                 </div>
                 <DialogFooter>
+                     <Button variant="outline" onClick={() => setIsCaptureMode(false)}>
+                        Cancel
+                    </Button>
                     <Button onClick={handleCaptureImage}>
                         <Camera className="mr-2 h-4 w-4" />
                         Capture
@@ -468,5 +485,3 @@ export default function ScanPage() {
     </>
   );
 }
-
-    

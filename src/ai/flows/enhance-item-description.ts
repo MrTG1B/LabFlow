@@ -5,14 +5,14 @@
  * This file defines the server-side logic for the AI enhancement flow.
  *
  * - enhanceDescriptionFlow - The Genkit flow that performs the enhancement.
- * - EnhanceDescriptionInputSchema - The Zod schema for the flow's input.
- * - EnhanceDescriptionOutputSchema - The Zod schema for the flow's output.
+ * - EnhanceDescriptionInput - The Zod schema for the flow's input.
+ * - EnhanceDescriptionOutput - The Zod schema for the flow's output.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const EnhanceDescriptionInputSchema = z.object({
+const EnhanceDescriptionInputSchema = z.object({
   name: z.string().describe('The name of the inventory item.'),
   type: z.string().describe('The type of the inventory item (e.g., Capacitor, Resistor).'),
   value: z.string().describe('The value of the component (e.g., "10k", "1uF").'),
@@ -20,11 +20,10 @@ export const EnhanceDescriptionInputSchema = z.object({
 });
 export type EnhanceDescriptionInput = z.infer<typeof EnhanceDescriptionInputSchema>;
 
-export const EnhanceDescriptionOutputSchema = z.object({
+const EnhanceDescriptionOutputSchema = z.object({
   description: z.string().describe('The enhanced, concise description of the item.'),
 });
 export type EnhanceDescriptionOutput = z.infer<typeof EnhanceDescriptionOutputSchema>;
-
 
 const prompt = ai.definePrompt({
   name: 'enhanceDescriptionPrompt',
