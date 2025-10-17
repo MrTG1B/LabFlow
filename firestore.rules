@@ -1,74 +1,80 @@
 /**
- * @fileoverview Firestore Security Rules for the application.
+ * @fileoverview Firestore Security Rules for Prototyping.
  *
  * Core Philosophy:
- * This ruleset enforces a user-ownership model for user profiles and allows public read access to inventory items.
+ * This ruleset prioritizes security by default, enforcing strict access control
+ * based on user identity wherever possible. It assumes an owner-only model
+ * unless explicitly specified otherwise. Data validation is relaxed to
+ * accelerate development.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profile data, with access restricted to the user themselves.
- * - /inventory/{inventoryItemId}: Stores inventory item data, publicly readable, but writable by no one.
+ * - /users/{userId}: Stores individual user profiles, accessible only to the
+ *   authenticated user with the matching UID.
+ * - /inventory/{inventoryItemId}: Stores data about inventory items. In this
+ *   initial prototype, creates, updates and deletes are disallowed.
  *
  * Key Security Decisions:
- * - Users can only create, read, update, and delete their own profile data.
- * - Inventory items are read-only for all users.
- * - Listing of users is disallowed.
+ * - User listing is disallowed to prevent information disclosure.
+ * - Write access to inventory items is initially disabled due to the absence of
+ *   clear ownership information, requiring schema extension.
  *
  * Denormalization for Authorization:
- * - The User document's `uid` field must match the `userId` path segment to ensure ownership.
+ *   None explicitly required at this stage, but future rules should
+ *   denormalize ownership data onto documents to avoid costly `get()` calls.
+ *
+ * Structural Segregation:
+ *   No explicit segregation is used at this time. If public content is needed,
+ *   consider a separate top-level collection.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to user profile documents.
+     * @description Manages user profile data, ensuring only the authenticated user can access their own profile.
      * @path /users/{userId}
-     * @allow (create) User with UID 'user123' can create their profile at /users/user123.
-     * @deny (create) User with UID 'user123' cannot create a profile at /users/anotherUser.
-     * @allow (get) User with UID 'user123' can read their profile at /users/user123.
-     * @deny (get) User with UID 'user123' cannot read another user's profile at /users/anotherUser.
-     * @allow (update) User with UID 'user123' can update their profile at /users/user123.
-     * @deny (update) User with UID 'user123' cannot update another user's profile at /users/anotherUser.
-     * @allow (delete) User with UID 'user123' can delete their profile at /users/user123.
-     * @deny (delete) User with UID 'user123' cannot delete another user's profile at /users/anotherUser.
+     * @allow (get, create, update, delete, list) User with matching {userId}
+     * @deny (get, create, update, delete, list) User with non-matching {userId}
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
+      // Check if the user is signed in
       function isSignedIn() {
         return request.auth != null;
       }
 
+      // Check if the requested user id matches the authenticated user id
       function isOwner(userId) {
         return request.auth.uid == userId;
       }
 
+      //Check if the user is signed in and is also the owner of the user profile
       function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
+          return isOwner(userId) && resource != null;
       }
 
       allow get: if isOwner(userId);
       allow list: if false;
 
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.uid == userId;
+      // Allow the user to create their own profile on sign-up, enforcing ID consistency
+      allow create: if isSignedIn() && request.auth.uid == userId && request.resource.data.uid == request.auth.uid;
+      //On Update ensure that the the user is signed in and is also the owner of the user profile. Also allow only same user to edit their information.
       allow update: if isExistingOwner(userId) && request.resource.data.uid == resource.data.uid;
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to inventory item documents.
+     * @description Manages inventory items. In this prototype phase, write operations are disabled due to unclear ownership.
      * @path /inventory/{inventoryItemId}
-     * @allow (get) Any user can retrieve inventory items.
-     * @allow (list) Any user can list inventory items.
-     * @deny (create) No user can create inventory items.
-     * @deny (update) No user can update inventory items.
-     * @deny (delete) No user can delete inventory items.
-     * @principle Allows public read access but restricts all write access.
+     * @allow (get, list) All users can read inventory items.
+     * @deny (create, update, delete) All users are denied write access.
+     * @principle Public read, restricted write until ownership model is defined.
      */
     match /inventory/{inventoryItemId} {
-      allow get, list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow get, list: if true; // Public read for all inventory items
+
+      // CRITICAL: Cannot implement owner-only writes. The 'InventoryItem' entity is missing an 'ownerId' or 'authorId' field.
+      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
   }
 }
