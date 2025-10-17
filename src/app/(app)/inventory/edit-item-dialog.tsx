@@ -31,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { doc, collection, query, orderBy } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
@@ -98,7 +98,7 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
         vendorId: values.vendorId === 'None' ? undefined : values.vendorId,
       };
       
-      await setDocumentNonBlocking(itemRef, updatedItem, { merge: true });
+      setDocumentNonBlocking(itemRef, updatedItem, { merge: true });
 
       toast({
         title: 'Success!',
@@ -108,6 +108,8 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
       form.reset();
       onOpenChange(false);
     } catch (error) {
+      // This path should ideally not be taken due to non-blocking nature,
+      // but is kept for safety.
       console.error('Error updating document: ', error);
       toast({
         variant: 'destructive',
@@ -311,3 +313,5 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
     </Dialog>
   );
 }
+
+    
