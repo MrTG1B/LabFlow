@@ -49,7 +49,7 @@ const formSchema = z.object({
   barcode: z.string(),
   vendorId: z.string().optional(),
   rate: z.coerce.number().optional(),
-  createdAt: z.string(), // Keep existing createdAt
+  createdAt: z.string().optional(), // Keep existing createdAt
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -93,7 +93,7 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
 
     try {
       const itemRef = doc(firestore, 'inventory', item.id);
-      const updatedItem: Omit<InventoryItem, 'id'> = {
+      const updatedItem: Partial<InventoryItem> = {
         ...values,
         vendorId: values.vendorId === 'None' ? undefined : values.vendorId,
       };
