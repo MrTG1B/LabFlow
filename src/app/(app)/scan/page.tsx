@@ -140,7 +140,9 @@ export default function ScanPage() {
     setIsEnhancing(false);
     setIsEditing(false);
     setCapturedImage(null);
-    setIsScanning(true); // Re-enable scanning
+    if(!isCaptureMode){
+      setIsScanning(true); // Re-enable scanning
+    }
   };
 
   const handleSave = async () => {
@@ -198,6 +200,7 @@ export default function ScanPage() {
             const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
             setCapturedImage(dataUrl);
             setIsCaptureMode(false);
+            setIsScanning(true);
         }
     }
   };
@@ -263,7 +266,7 @@ export default function ScanPage() {
       });
 
       scanInterval = setInterval(async () => {
-        if (videoRef.current && videoRef.current.readyState === 4 && !isCaptureMode) {
+        if (videoRef.current && videoRef.current.readyState === 4) {
           try {
             const barcodes = await barcodeDetector.detect(videoRef.current);
 
@@ -283,7 +286,7 @@ export default function ScanPage() {
         clearInterval(scanInterval);
       }
     };
-  }, [isScanning, hasCameraPermission, handleBarcodeScanned, isCaptureMode]);
+  }, [isScanning, hasCameraPermission, handleBarcodeScanned]);
 
 
   return (
@@ -345,7 +348,7 @@ export default function ScanPage() {
              <div>
                 {scannedItem.imageUrl && (
                     <div className='relative w-full aspect-video rounded-md overflow-hidden mb-4 border'>
-                        <Image src={scannedItem.imageUrl} alt={scannedItem.name} layout="fill" objectFit="cover" />
+                        <Image src={scannedItem.imageUrl} alt={scannedItem.name} fill={true} objectFit="cover" />
                     </div>
                 )}
                 <Table>
@@ -397,7 +400,7 @@ export default function ScanPage() {
                 </div>
              </div>
           )}
-          <DialogFooter className='sm:justify-between'>
+          <DialogFooter className='sm:justify-between gap-2'>
             <Button variant="outline" onClick={() => setIsEditing(true)}>
                 <Edit className="mr-2 h-4 w-4" />
                 Edit
@@ -429,7 +432,7 @@ export default function ScanPage() {
                                 </Button>
                              </div>
                         ) : (
-                            <Button variant="outline" onClick={() => setIsCaptureMode(true)} disabled={isSaving}>
+                            <Button variant="outline" onClick={() => { setIsScanning(false); setIsCaptureMode(true);}} disabled={isSaving}>
                                 <ImagePlus className="mr-2 h-4 w-4" />
                                 Add Image
                             </Button>
@@ -437,7 +440,7 @@ export default function ScanPage() {
                     </div>
                 </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className='gap-2'>
                 <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>Cancel</Button>
                 <Button onClick={handleSave} disabled={isSaving}>
                     {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Save Changes'}
@@ -446,7 +449,7 @@ export default function ScanPage() {
         </DialogContent>
       </Dialog>
 
-       <Dialog open={isCaptureMode} onOpenChange={setIsCaptureMode}>
+       <Dialog open={isCaptureMode} onOpenChange={(open) => { if (!open) { setIsCaptureMode(false); setIsScanning(true); } }}>
             <DialogContent className="max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>Capture Component Image</DialogTitle>
@@ -465,3 +468,5 @@ export default function ScanPage() {
     </>
   );
 }
+
+    
