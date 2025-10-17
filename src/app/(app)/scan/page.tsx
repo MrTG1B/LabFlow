@@ -67,6 +67,7 @@ export default function ScanPage() {
 
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const captureVideoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -79,11 +80,15 @@ export default function ScanPage() {
 
 
   const stopCameraStream = useCallback(() => {
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach((track) => track.stop());
-        videoRef.current.srcObject = null;
+      const stopStream = (ref: React.RefObject<HTMLVideoElement>) => {
+        if (ref.current && ref.current.srcObject) {
+            const stream = ref.current.srcObject as MediaStream;
+            stream.getTracks().forEach((track) => track.stop());
+            ref.current.srcObject = null;
+        }
       }
+      stopStream(videoRef);
+      stopStream(captureVideoRef);
     }, []);
   
   const startCameraStream = useCallback(async (captureMode: boolean) => {
@@ -96,12 +101,18 @@ export default function ScanPage() {
         };
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         setHasCameraPermission(true);
-        if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-            videoRef.current.play();
+
+        const videoElement = captureMode ? captureVideoRef.current : videoRef.current;
+
+        if (videoElement) {
+            videoElement.srcObject = stream;
+            videoElement.play();
         }
+
         if(!captureMode){
             setIsScanning(true);
+        } else {
+            setIsScanning(false);
         }
     } catch (error) {
         console.error('Error accessing camera:', error);
@@ -152,7 +163,8 @@ export default function ScanPage() {
         const doc = querySnapshot.docs[0];
         const item = { id: doc.id, ...doc.data() } as InventoryItem;
         setScannedItem(item);
-        setEditingQuantity(item.quantity);
+        setEditingQuantity(item.quantity || 0);
+        if (item.imageUrl) setCapturedImage(item.imageUrl);
         enhanceItemDescription(item);
       } else {
         toast({
@@ -195,7 +207,8 @@ export default function ScanPage() {
             quantity: editingQuantity,
         };
 
-        if (capturedImage) {
+        // Check if the captured image is a new base64 image
+        if (capturedImage && capturedImage.startsWith('data:image')) {
             setIsUploading(true);
             const base64Image = capturedImage.split(',')[1];
             const uploadResult = await uploadImage(base64Image);
@@ -208,7 +221,7 @@ export default function ScanPage() {
             setIsUploading(false);
         }
         
-        await setDocumentNonBlocking(itemRef, updates, { merge: true });
+        setDocumentNonBlocking(itemRef, updates, { merge: true });
 
         toast({
             title: 'Success!',
@@ -231,8 +244,8 @@ export default function ScanPage() {
   };
 
   const handleCaptureImage = () => {
-    if (videoRef.current && canvasRef.current) {
-        const video = videoRef.current;
+    if (captureVideoRef.current && canvasRef.current) {
+        const video = captureVideoRef.current;
         const canvas = canvasRef.current;
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
@@ -241,10 +254,15 @@ export default function ScanPage() {
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
             const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
             setCapturedImage(dataUrl);
-            setIsCaptureMode(false);
         }
     }
+    handleCloseCaptureDialog();
   };
+
+  const handleCloseCaptureDialog = () => {
+    stopCameraStream();
+    setIsCaptureMode(false);
+  }
 
   // Effect for camera permission and setup
   useEffect(() => {
@@ -276,12 +294,16 @@ export default function ScanPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toast]);
 
-  // Effect to switch camera stream when capture mode changes
+  // Effect to switch camera stream when capture mode changes OR dialogs close
   useEffect(() => {
-      if (scannedItem === null) {
-        startCameraStream(isCaptureMode);
+      if (scannedItem === null && !isCaptureMode) {
+        startCameraStream(false);
+      } else if (isCaptureMode) {
+        startCameraStream(true);
+      } else {
+        stopCameraStream();
       }
-  }, [isCaptureMode, startCameraStream, scannedItem]);
+  }, [isCaptureMode, startCameraStream, scannedItem, stopCameraStream]);
 
   // Effect for barcode detection interval, controlled by isScanning state
   useEffect(() => {
@@ -398,7 +420,7 @@ export default function ScanPage() {
                     )}
                     <dl>
                         {renderDetailRow("Type", scannedItem.type)}
-                        {renderDetailRow("Quantity", `${scannedItem.quantity} ${scannedItem.unit}`)}
+                        {renderDetailRow("Quantity", `${scannedItem.quantity || 0} ${scannedItem.unit || ''}`.trim())}
                         {renderDetailRow("Value", scannedItem.value)}
                         {renderDetailRow("Part Number", scannedItem.partNumber)}
                         {renderDetailRow("Vendor", vendor?.name)}
@@ -411,9 +433,11 @@ export default function ScanPage() {
                         )}
                         {enhancedDescription && renderDescriptionRow("AI Description", enhancedDescription, true)}
                     </dl>
-                    <div className="mt-4 flex items-center justify-center bg-white p-2 rounded-md">
-                        <Barcode value={scannedItem.barcode} height={60} />
-                    </div>
+                    {scannedItem.barcode && (
+                        <div className="mt-4 flex items-center justify-center bg-white p-2 rounded-md">
+                            <Barcode value={scannedItem.barcode} height={60} />
+                        </div>
+                    )}
                 </div>
             </ScrollArea>
           )}
@@ -436,20 +460,20 @@ export default function ScanPage() {
             <div className="space-y-4 py-4">
                 <div>
                     <label htmlFor="quantity" className="block text-sm font-medium text-muted-foreground mb-1">Quantity</label>
-                    <Input id="quantity" type="number" value={editingQuantity} onChange={e => setEditingQuantity(parseInt(e.target.value, 10))} />
+                    <Input id="quantity" type="number" value={editingQuantity} onChange={e => setEditingQuantity(parseInt(e.target.value, 10) || 0)} />
                 </div>
                  <div>
                     <label className="block text-sm font-medium text-muted-foreground mb-1">Component Image</label>
                     <div className="relative p-2 border rounded-md min-h-[100px] flex items-center justify-center">
                         {capturedImage ? (
                              <div className="relative w-full">
-                                <Image src={capturedImage} alt="Captured component" width={200} height={150} className="rounded-md mx-auto" />
+                                <Image src={capturedImage} alt="Component" width={200} height={150} className="rounded-md mx-auto" />
                                 <Button variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6" onClick={() => setCapturedImage(null)}>
                                     <X className="h-4 w-4" />
                                 </Button>
                              </div>
                         ) : (
-                            <Button variant="outline" onClick={() => { setIsCaptureMode(true);}} disabled={isSaving}>
+                            <Button variant="outline" onClick={() => setIsCaptureMode(true)} disabled={isSaving}>
                                 <ImagePlus className="mr-2 h-4 w-4" />
                                 Add Image
                             </Button>
@@ -466,16 +490,16 @@ export default function ScanPage() {
         </DialogContent>
       </Dialog>
 
-       <Dialog open={isCaptureMode} onOpenChange={(open) => { if (!open) { setIsCaptureMode(false); } }}>
+       <Dialog open={isCaptureMode} onOpenChange={(open) => { if (!open) { handleCloseCaptureDialog() } }}>
             <DialogContent className="max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>Capture Component Image</DialogTitle>
                 </DialogHeader>
                 <div className="relative aspect-video w-full overflow-hidden rounded-md border bg-muted">
-                    <video ref={videoRef} className="h-full w-full object-cover" autoPlay playsInline muted />
+                    <video ref={captureVideoRef} className="h-full w-full object-cover" autoPlay playsInline muted />
                 </div>
                 <DialogFooter className='sm:justify-end gap-2'>
-                     <Button variant="outline" onClick={() => setIsCaptureMode(false)}>
+                     <Button variant="outline" onClick={handleCloseCaptureDialog}>
                         Cancel
                     </Button>
                     <Button onClick={handleCaptureImage}>
@@ -488,5 +512,3 @@ export default function ScanPage() {
     </>
   );
 }
-
-    
