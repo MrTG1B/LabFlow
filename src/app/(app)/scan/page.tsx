@@ -22,15 +22,16 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Camera, Loader2, Sparkles, Edit, ImagePlus, X } from 'lucide-react';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, query, where, getDocs, limit, doc } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import type { InventoryItem } from '@/lib/types';
+import type { InventoryItem, Vendor } from '@/lib/types';
 import Barcode from 'react-barcode';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { enhanceDescription } from './actions';
 import { Input } from '@/components/ui/input';
 import { uploadImage } from './upload-image-action';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 // Polyfill for BarcodeDetector
@@ -71,6 +72,13 @@ export default function ScanPage() {
   const { toast } = useToast();
   const firestore = useFirestore();
 
+  const vendorRef = useMemoFirebase(() => {
+    if (!firestore || !scannedItem?.vendorId) return null;
+    return doc(firestore, 'vendors', scannedItem.vendorId);
+  }, [firestore, scannedItem?.vendorId]);
+  const { data: vendor } = useDoc<Vendor>(vendorRef);
+
+
   const stopCameraStream = useCallback(() => {
       if (videoRef.current && videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
@@ -79,7 +87,7 @@ export default function ScanPage() {
       }
     }, []);
   
-  const startCameraStream = useCallback(async () => {
+  const startCameraStream = useCallback(async (captureMode: boolean) => {
     stopCameraStream(); // Ensure any existing stream is stopped
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
@@ -88,7 +96,7 @@ export default function ScanPage() {
             videoRef.current.srcObject = stream;
             videoRef.current.play();
         }
-        if(!isCaptureMode){
+        if(!captureMode){
             setIsScanning(true);
         }
     } catch (error) {
@@ -100,7 +108,7 @@ export default function ScanPage() {
             description: 'Please enable camera permissions in your browser settings to use this feature.',
         });
     }
-  }, [toast, stopCameraStream, isCaptureMode]);
+  }, [toast, stopCameraStream]);
 
   const enhanceItemDescription = useCallback(async (item: InventoryItem) => {
     if (!item.description || item.description.length < 20) {
@@ -171,9 +179,7 @@ export default function ScanPage() {
     setIsEnhancing(false);
     setIsEditing(false);
     setCapturedImage(null);
-    if(!isCaptureMode){
-      setIsScanning(true); // Re-enable scanning
-    }
+    startCameraStream(false);
   };
 
   const handleSave = async () => {
@@ -206,10 +212,7 @@ export default function ScanPage() {
             description: `"${scannedItem.name}" has been updated.`,
         });
 
-        // Optimistically update local state then close
-        setScannedItem(prev => prev ? {...prev, ...updates} : null);
         handleCloseDialog();
-        setIsScanning(true); // Explicitly restart scanning
 
     } catch (error) {
         console.error("Error saving item:", error);
@@ -235,7 +238,7 @@ export default function ScanPage() {
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
             const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
             setCapturedImage(dataUrl);
-            setIsCaptureMode(false); // This will trigger the useEffect to go back to scanning mode
+            setIsCaptureMode(false);
         }
     }
   };
@@ -272,7 +275,7 @@ export default function ScanPage() {
 
   // Effect to switch camera stream when capture mode changes
   useEffect(() => {
-      startCameraStream();
+      startCameraStream(isCaptureMode);
   }, [isCaptureMode, startCameraStream]);
 
   // Effect for barcode detection interval, controlled by isScanning state
@@ -306,6 +309,23 @@ export default function ScanPage() {
       }
     };
   }, [isScanning, hasCameraPermission, handleBarcodeScanned]);
+
+  const renderDetailRow = (label: string, value: string | number | undefined | null) => (
+    <div className="flex justify-between border-b py-3 text-sm">
+        <dt className="text-muted-foreground">{label}</dt>
+        <dd className="text-right font-medium">{value || 'N/A'}</dd>
+    </div>
+    );
+    
+    const renderDescriptionRow = (label: string, value: string | undefined | null, isAI?: boolean) => (
+        <div className="flex flex-col gap-1 border-b py-3 text-sm">
+            <dt className="text-muted-foreground flex items-center gap-1.5">
+                {isAI && <Sparkles className="h-4 w-4 text-primary" />}
+                {label}
+            </dt>
+            <dd className="font-medium">{value || 'No description provided.'}</dd>
+        </div>
+    );
 
 
   return (
@@ -356,70 +376,43 @@ export default function ScanPage() {
       </Card>
       
       <Dialog open={!!scannedItem && !isEditing} onOpenChange={(open) => !open && handleCloseDialog()}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="p-0 max-h-[90dvh] flex flex-col">
+          <DialogHeader className="p-6 pb-0">
             <DialogTitle>{scannedItem?.name}</DialogTitle>
             <DialogDescription>
               Details for the scanned inventory item.
             </DialogDescription>
           </DialogHeader>
           {scannedItem && (
-             <div>
-                {scannedItem.imageUrl && (
-                    <div className='relative w-full aspect-video rounded-md overflow-hidden mb-4 border'>
-                        <Image src={scannedItem.imageUrl} alt={scannedItem.name} layout="fill" objectFit="cover" />
+            <ScrollArea className="flex-1">
+                <div className='px-6'>
+                    {scannedItem.imageUrl && (
+                        <div className='relative w-full aspect-[16/10] rounded-md overflow-hidden mb-4 border'>
+                            <Image src={scannedItem.imageUrl} alt={scannedItem.name} layout="fill" objectFit="cover" />
+                        </div>
+                    )}
+                    <dl>
+                        {renderDetailRow("Type", scannedItem.type)}
+                        {renderDetailRow("Quantity", `${scannedItem.quantity} ${scannedItem.unit}`)}
+                        {renderDetailRow("Value", scannedItem.value)}
+                        {renderDetailRow("Part Number", scannedItem.partNumber)}
+                        {renderDetailRow("Vendor", vendor?.name)}
+                        {renderDetailRow("Rate", scannedItem.rate ? `₹${scannedItem.rate.toFixed(2)}` : undefined)}
+                        {renderDescriptionRow("Description", scannedItem.description)}
+                        {isEnhancing && (
+                            <div className="flex items-center justify-center py-4">
+                                <Loader2 className="h-4 w-4 animate-spin inline mr-2" /> Enhancing...
+                            </div>
+                        )}
+                        {enhancedDescription && renderDescriptionRow("AI Description", enhancedDescription, true)}
+                    </dl>
+                    <div className="mt-4 flex items-center justify-center bg-white p-2 rounded-md">
+                        <Barcode value={scannedItem.barcode} height={60} />
                     </div>
-                )}
-                <Table>
-                    <TableBody>
-                        <TableRow>
-                            <TableCell className="font-semibold">Type</TableCell>
-                            <TableCell>{scannedItem.type}</TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell className="font-semibold">Quantity</TableCell>
-                            <TableCell>{scannedItem.quantity} {scannedItem.unit}</TableCell>
-                        </TableRow>
-                         <TableRow>
-                            <TableCell className="font-semibold">Value</TableCell>
-                            <TableCell>{scannedItem.value || 'N/A'}</TableCell>
-                        </TableRow>
-                         <TableRow>
-                            <TableCell className="font-semibold">Part Number</TableCell>
-                            <TableCell>{scannedItem.partNumber || 'N/A'}</TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell className="font-semibold align-top">Description</TableCell>
-                            <TableCell>
-                                {scannedItem.description || 'No description provided.'}
-                            </TableCell>
-                        </TableRow>
-                         {isEnhancing && (
-                            <TableRow>
-                                <TableCell colSpan={2} className='text-center'>
-                                    <Loader2 className="h-4 w-4 animate-spin inline mr-2" /> Enhancing description...
-                                </TableCell>
-                            </TableRow>
-                         )}
-                         {enhancedDescription && (
-                             <TableRow>
-                                 <TableCell className="font-semibold align-top">
-                                     <div className='flex items-center gap-1'>
-                                        <Sparkles className="h-4 w-4 text-primary" />
-                                        AI Description
-                                     </div>
-                                 </TableCell>
-                                 <TableCell>{enhancedDescription}</TableCell>
-                             </TableRow>
-                         )}
-                    </TableBody>
-                </Table>
-                <div className="mt-4 flex items-center justify-center bg-white p-2 rounded-md">
-                    <Barcode value={scannedItem.barcode} height={60} />
                 </div>
-             </div>
+            </ScrollArea>
           )}
-          <DialogFooter className='sm:justify-between gap-2'>
+          <DialogFooter className='p-6 pt-4 mt-auto grid grid-cols-2 gap-4'>
             <Button variant="outline" onClick={() => setIsEditing(true)}>
                 <Edit className="mr-2 h-4 w-4" />
                 Edit
@@ -435,7 +428,7 @@ export default function ScanPage() {
                 <DialogTitle>Edit {scannedItem?.name}</DialogTitle>
                 <DialogDescription>Update the item's details below.</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-4 py-4">
                 <div>
                     <label htmlFor="quantity" className="block text-sm font-medium text-muted-foreground mb-1">Quantity</label>
                     <Input id="quantity" type="number" value={editingQuantity} onChange={e => setEditingQuantity(parseInt(e.target.value, 10))} />
@@ -459,7 +452,7 @@ export default function ScanPage() {
                     </div>
                 </div>
             </div>
-            <DialogFooter className='gap-2 sm:justify-between'>
+            <DialogFooter className='grid grid-cols-2 gap-4'>
                 <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>Cancel</Button>
                 <Button onClick={handleSave} disabled={isSaving || isUploading}>
                     {isSaving || isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Save Changes'}
@@ -490,5 +483,3 @@ export default function ScanPage() {
     </>
   );
 }
-
-    

@@ -10,7 +10,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import Barcode from 'react-barcode';
 import type { InventoryItem, Vendor } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -19,6 +18,8 @@ import { Loader2, Sparkles } from 'lucide-react';
 import { useDoc, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useMemoFirebase } from '@/firebase/provider';
+import Image from 'next/image';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface ItemDetailsDialogProps {
   item: InventoryItem;
@@ -68,71 +69,61 @@ export function ItemDetailsDialog({ item, open, onOpenChange }: ItemDetailsDialo
         }
     }, [item, open, enhanceItemDescription]);
 
+    const renderDetailRow = (label: string, value: string | number | undefined | null) => (
+        <div className="flex justify-between border-b py-3 text-sm">
+            <dt className="text-muted-foreground">{label}</dt>
+            <dd className="text-right font-medium">{value || 'N/A'}</dd>
+        </div>
+    );
+    
+    const renderDescriptionRow = (label: string, value: string | undefined | null, isAI?: boolean) => (
+        <div className="flex flex-col gap-1 border-b py-3 text-sm">
+            <dt className="text-muted-foreground flex items-center gap-1.5">
+                {isAI && <Sparkles className="h-4 w-4 text-primary" />}
+                {label}
+            </dt>
+            <dd className="font-medium">{value || 'No description provided.'}</dd>
+        </div>
+    );
+
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
-                <DialogHeader>
+            <DialogContent className="sm:max-w-lg p-0">
+                <DialogHeader className="p-6 pb-0">
                     <DialogTitle>{item.name}</DialogTitle>
                     <DialogDescription>
                         Details for inventory item.
                     </DialogDescription>
                 </DialogHeader>
-                <div>
-                    <Table>
-                        <TableBody>
-                            <TableRow>
-                                <TableCell className="font-semibold">Type</TableCell>
-                                <TableCell>{item.type}</TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell className="font-semibold">Quantity</TableCell>
-                                <TableCell>{item.quantity} {item.unit}</TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell className="font-semibold">Value</TableCell>
-                                <TableCell>{item.value || 'N/A'}</TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell className="font-semibold">Part Number</TableCell>
-                                <TableCell>{item.partNumber || 'N/A'}</TableCell>
-                            </TableRow>
-                             <TableRow>
-                                <TableCell className="font-semibold">Vendor</TableCell>
-                                <TableCell>{vendor?.name || 'None'}</TableCell>
-                            </TableRow>
-                             <TableRow>
-                                <TableCell className="font-semibold">Rate</TableCell>
-                                <TableCell>{item.rate ? `₹${item.rate.toFixed(2)}` : 'N/A'}</TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell className="font-semibold align-top">Description</TableCell>
-                                <TableCell>{item.description || 'No description provided.'}</TableCell>
-                            </TableRow>
-                             {isEnhancing && (
-                            <TableRow>
-                                <TableCell colSpan={2} className='text-center'>
+                <ScrollArea className="max-h-[70vh]">
+                    <div className='px-6'>
+                        {item.imageUrl && (
+                            <div className='relative w-full aspect-[16/10] rounded-md overflow-hidden mb-4 border'>
+                                <Image src={item.imageUrl} alt={item.name} layout="fill" objectFit="cover" />
+                            </div>
+                        )}
+                        <dl>
+                            {renderDetailRow("Type", item.type)}
+                            {renderDetailRow("Quantity", `${item.quantity} ${item.unit}`)}
+                            {renderDetailRow("Value", item.value)}
+                            {renderDetailRow("Part Number", item.partNumber)}
+                            {renderDetailRow("Vendor", vendor?.name)}
+                            {renderDetailRow("Rate", item.rate ? `₹${item.rate.toFixed(2)}` : undefined)}
+                            {renderDescriptionRow("Description", item.description)}
+                            {isEnhancing && (
+                                <div className="flex items-center justify-center py-4">
                                     <Loader2 className="h-4 w-4 animate-spin inline mr-2" /> Enhancing description...
-                                </TableCell>
-                            </TableRow>
-                         )}
-                         {enhancedDescription && (
-                             <TableRow>
-                                 <TableCell className="font-semibold align-top">
-                                     <div className='flex items-center gap-1'>
-                                        <Sparkles className="h-4 w-4 text-primary" />
-                                        AI Description
-                                     </div>
-                                 </TableCell>
-                                 <TableCell>{enhancedDescription}</TableCell>
-                             </TableRow>
-                         )}
-                        </TableBody>
-                    </Table>
-                    <div className="mt-4 flex items-center justify-center bg-white p-2 rounded-md">
-                        <Barcode value={item.barcode} height={60} />
+                                </div>
+                            )}
+                            {enhancedDescription && renderDescriptionRow("AI Description", enhancedDescription, true)}
+                        </dl>
+                        <div className="mt-4 flex items-center justify-center bg-white p-2 rounded-md">
+                            <Barcode value={item.barcode} height={60} />
+                        </div>
                     </div>
-                </div>
-                <DialogFooter>
+                </ScrollArea>
+                <DialogFooter className="p-6 pt-4 border-t">
                     <Button onClick={() => onOpenChange(false)}>Close</Button>
                 </DialogFooter>
             </DialogContent>
