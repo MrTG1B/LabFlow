@@ -9,38 +9,27 @@ import { getFirestore } from 'firebase/firestore'
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
   if (typeof window === 'undefined') {
-    // On the server, we can always try to initialize, and it will be a no-op
-    // if already initialized.
-    try {
-      return getSdks(initializeApp());
-    } catch (e) {
-      return getSdks(initializeApp(firebaseConfig));
-    }
+    // On the server, prevent initialization. Server-side Firebase should be handled differently if needed.
+    // For this app, all Firebase usage is client-side.
+    return getSdks(null);
   }
 
-  // On the client, we must use getApps() to avoid re-initializing.
-  if (!getApps().length) {
-    // In a production environment (Firebase App Hosting), the config is provided
-    // automatically, so initializeApp() is called without arguments.
-    if (process.env.NODE_ENV === 'production') {
-       try {
-         return getSdks(initializeApp());
-       } catch (e) {
-         console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
-         return getSdks(initializeApp(firebaseConfig));
-       }
-    } else {
-      // In development, we use the local config file.
-      return getSdks(initializeApp(firebaseConfig));
-    }
-  }
-
-  // If already initialized on the client, return the existing app instance.
-  return getSdks(getApp());
+  // On the client, we use getApps() to avoid re-initializing.
+  const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  
+  return getSdks(app);
 }
 
 
-export function getSdks(firebaseApp: FirebaseApp) {
+export function getSdks(firebaseApp: FirebaseApp | null) {
+    if (!firebaseApp) {
+        return {
+            firebaseApp: null,
+            auth: null,
+            firestore: null
+        };
+    }
+
   return {
     firebaseApp,
     auth: getAuth(firebaseApp),
