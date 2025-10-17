@@ -161,7 +161,6 @@ export default function ScanPage() {
             quantity: editingQuantity,
         };
 
-        // Check if the captured image is a new base64 image
         if (capturedImage && capturedImage.startsWith('data:image')) {
             setIsUploading(true);
             const base64Image = capturedImage.split(',')[1];
@@ -221,7 +220,7 @@ export default function ScanPage() {
                 stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                 if (videoRef.current) {
                     videoRef.current.srcObject = stream;
-                    videoRef.current.play();
+                    videoRef.current.play().catch(e => console.error("Video play failed:", e));
                 }
 
                 const barcodeDetector = new window.BarcodeDetector({
@@ -236,13 +235,18 @@ export default function ScanPage() {
                                 handleBarcodeScanned(barcodes[0].rawValue);
                             }
                         } catch (error) {
-                            console.error('Barcode detection error:', error);
+                             // Barcode detection can fail, log silently
                         }
                     }
                 }, 500);
             } catch (error) {
                 console.error('Error starting camera stream:', error);
                 setHasCameraPermission(false);
+                toast({
+                  variant: 'destructive',
+                  title: 'Camera Error',
+                  description: 'Could not start camera. Please check permissions.',
+                });
             }
         }
     };
@@ -259,7 +263,7 @@ export default function ScanPage() {
         stream?.getTracks().forEach(track => track.stop());
     }
 
-    if (isScanning) {
+    if (isScanning && !scannedItem) {
         startScanning();
     } else {
         stopScanning();
@@ -268,7 +272,7 @@ export default function ScanPage() {
     return () => {
         stopScanning();
     };
-}, [isScanning, hasCameraPermission, handleBarcodeScanned]);
+}, [isScanning, hasCameraPermission, handleBarcodeScanned, scannedItem, toast]);
 
 
   // Effect to check for initial browser support and permission
@@ -291,14 +295,13 @@ export default function ScanPage() {
             });
         }
         try {
-            // Check permission without starting stream
             const permission = await navigator.permissions.query({ name: 'camera' as PermissionName });
             if (permission.state === 'granted') {
                 setHasCameraPermission(true);
                 setIsScanning(true);
             } else if (permission.state === 'prompt') {
-                setHasCameraPermission(null); // Will ask when needed
-                setIsScanning(true); // Attempt to start will trigger prompt
+                setHasCameraPermission(null); 
+                setIsScanning(true);
             } else {
                 setHasCameraPermission(false);
             }
@@ -324,7 +327,7 @@ export default function ScanPage() {
                 {isAI && <Sparkles className="h-4 w-4 text-primary" />}
                 {label}
             </dt>
-            <dd className="font-medium">{value || 'No description provided.'}</dd>
+            <dd className="font-medium whitespace-pre-wrap">{value || 'No description provided.'}</dd>
         </div>
     );
 
@@ -384,11 +387,11 @@ export default function ScanPage() {
             </DialogDescription>
           </DialogHeader>
           {scannedItem && (
-            <ScrollArea className="flex-1">
+            <ScrollArea className="flex-1 min-h-0">
                 <div className='px-6'>
-                    {scannedItem.imageUrl && (
-                        <div className='relative w-full aspect-[16/10] rounded-md overflow-hidden mb-4 border'>
-                            <Image src={scannedItem.imageUrl} alt={scannedItem.name} layout="fill" objectFit="cover" />
+                    {capturedImage && (
+                        <div className='relative w-full aspect-[16/10] rounded-md overflow-hidden my-4 border'>
+                            <Image src={capturedImage} alt={scannedItem.name} layout="fill" objectFit="cover" />
                         </div>
                     )}
                     <dl>
@@ -414,7 +417,7 @@ export default function ScanPage() {
                 </div>
             </ScrollArea>
           )}
-          <DialogFooter className='p-6 pt-4 mt-auto grid grid-cols-2 gap-4'>
+          <DialogFooter className='p-6 pt-4 mt-auto border-t grid grid-cols-2 gap-4'>
             <Button variant="outline" onClick={() => setIsEditing(true)}>
                 <Edit className="mr-2 h-4 w-4" />
                 Edit
@@ -455,7 +458,6 @@ export default function ScanPage() {
                                     ref={fileInputRef}
                                     type="file"
                                     accept="image/*"
-                                    capture="environment"
                                     onChange={handleImageFileChange}
                                     className="hidden"
                                 />
@@ -475,5 +477,3 @@ export default function ScanPage() {
     </>
   );
 }
-
-    
