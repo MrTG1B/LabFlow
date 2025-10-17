@@ -1,80 +1,93 @@
 /**
- * @fileoverview Firestore Security Rules for Prototyping.
- *
- * Core Philosophy:
- * This ruleset prioritizes security by default, enforcing strict access control
- * based on user identity wherever possible. It assumes an owner-only model
- * unless explicitly specified otherwise. Data validation is relaxed to
- * accelerate development.
+ * @file Firestore Security Rules
+ * @description This ruleset implements a public-read, owner-write model for inventory items,
+ *              and restricts user data access to the owning user. It prioritizes security
+ *              by enforcing strict ownership checks and preventing unauthorized data modification.
  *
  * Data Structure:
- * - /users/{userId}: Stores individual user profiles, accessible only to the
- *   authenticated user with the matching UID.
- * - /inventory/{inventoryItemId}: Stores data about inventory items. In this
- *   initial prototype, creates, updates and deletes are disallowed.
+ * - /users/{userId}: Stores user profile information, accessible only to the user themselves.
+ * - /inventory/{inventoryItemId}: Stores inventory items, publicly readable, but only
+ *   modifiable by the user who created them (owner).
  *
  * Key Security Decisions:
- * - User listing is disallowed to prevent information disclosure.
- * - Write access to inventory items is initially disabled due to the absence of
- *   clear ownership information, requiring schema extension.
+ * - Users can only read and write their own user documents.
+ * - Inventory items are publicly readable, but write access is restricted to the item's owner.
+ * - Listing of users is disallowed.
  *
  * Denormalization for Authorization:
- *   None explicitly required at this stage, but future rules should
- *   denormalize ownership data onto documents to avoid costly `get()` calls.
+ * - Inventory items must contain a `creatorId` field that matches the authenticated user's UID
+ *   upon creation. This field is immutable after creation.
  *
  * Structural Segregation:
- *   No explicit segregation is used at this time. If public content is needed,
- *   consider a separate top-level collection.
+ * - User profile data and inventory data are stored in separate collections to allow for
+ *   different access control policies.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Manages user profile data, ensuring only the authenticated user can access their own profile.
+     * @description Secure user profiles. Only the authenticated user can read or write their own profile.
      * @path /users/{userId}
-     * @allow (get, create, update, delete, list) User with matching {userId}
-     * @deny (get, create, update, delete, list) User with non-matching {userId}
-     * @principle Enforces document ownership for all operations.
+     * @allow (get, update, delete) if request.auth.uid == userId
+     * @allow (create) if request.auth.uid == request.resource.data.uid
+     * @deny (list) Always deny listing users
+     * @deny (create) if request.auth.uid != request.resource.data.uid
+     * @principle Enforces strict user ownership for all operations on user profiles.
      */
     match /users/{userId} {
-      // Check if the user is signed in
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      // Users can only read their own profile.
+      allow get: if isOwner(userId);
+      allow list: if false;
+
+      // Users can only create their own profile, and the uid in the request must match the document ID.
+      allow create: if isOwner(userId) && request.resource.data.uid == userId;
+
+      // Users can only update their own profile. Enforce immutability of the uid field.
+      allow update: if isOwner(userId) && request.resource.data.uid == resource.data.uid;
+
+      // Users can only delete their own profile.
+      allow delete: if isOwner(userId);
+    }
+
+    /**
+     * @description Secure inventory items. Inventory items are publicly readable, but only the
+     *              creator can modify or delete them.
+     * @path /inventory/{inventoryItemId}
+     * @allow (get, list) if true
+     * @allow (create) if request.resource.data.creatorId == request.auth.uid
+     * @allow (update, delete) if resource.data.creatorId == request.auth.uid
+     * @deny (create) if request.resource.data.creatorId != request.auth.uid
+     * @principle Allows public read access, but enforces owner-only write access.
+     */
+    match /inventory/{inventoryItemId} {
       function isSignedIn() {
         return request.auth != null;
       }
 
-      // Check if the requested user id matches the authenticated user id
-      function isOwner(userId) {
-        return request.auth.uid == userId;
+      function isOwner(creatorId) {
+        return isSignedIn() && request.auth.uid == creatorId;
       }
 
-      //Check if the user is signed in and is also the owner of the user profile
-      function isExistingOwner(userId) {
-          return isOwner(userId) && resource != null;
+      function isExistingOwner(creatorId) {
+        return isOwner(creatorId) && resource != null;
       }
 
-      allow get: if isOwner(userId);
-      allow list: if false;
+      // Anyone can read inventory items.
+      allow get, list: if true;
 
-      // Allow the user to create their own profile on sign-up, enforcing ID consistency
-      allow create: if isSignedIn() && request.auth.uid == userId && request.resource.data.uid == request.auth.uid;
-      //On Update ensure that the the user is signed in and is also the owner of the user profile. Also allow only same user to edit their information.
-      allow update: if isExistingOwner(userId) && request.resource.data.uid == resource.data.uid;
-      allow delete: if isExistingOwner(userId);
-    }
+      // Only the owner can create an inventory item, and the creatorId must match the user's UID.
+      allow create: if isSignedIn() && request.resource.data.creatorId == request.auth.uid;
 
-    /**
-     * @description Manages inventory items. In this prototype phase, write operations are disabled due to unclear ownership.
-     * @path /inventory/{inventoryItemId}
-     * @allow (get, list) All users can read inventory items.
-     * @deny (create, update, delete) All users are denied write access.
-     * @principle Public read, restricted write until ownership model is defined.
-     */
-    match /inventory/{inventoryItemId} {
-      allow get, list: if true; // Public read for all inventory items
+      // Only the owner can update an existing inventory item.  creatorId is immutable.
+      allow update: if isExistingOwner(resource.data.creatorId) && request.resource.data.creatorId == resource.data.creatorId;
 
-      // CRITICAL: Cannot implement owner-only writes. The 'InventoryItem' entity is missing an 'ownerId' or 'authorId' field.
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      // Only the owner can delete an existing inventory item.
+      allow delete: if isExistingOwner(resource.data.creatorId);
     }
   }
 }
