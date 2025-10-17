@@ -21,16 +21,17 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Camera, Loader2, Sparkles, Edit, ImagePlus, Upload, X } from 'lucide-react';
-import { useFirestore, useStorage } from '@/firebase';
+import { Camera, Loader2, Sparkles, Edit, ImagePlus, X } from 'lucide-react';
+import { useFirestore } from '@/firebase';
 import { collection, query, where, getDocs, limit, doc } from 'firebase/firestore';
-import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { InventoryItem } from '@/lib/types';
 import Barcode from 'react-barcode';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { enhanceDescription } from './actions';
 import { Input } from '@/components/ui/input';
+import { uploadImage } from './upload-image-action';
+
 
 // Polyfill for BarcodeDetector
 interface BarcodeDetectorOptions {
@@ -69,7 +70,6 @@ export default function ScanPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
   const firestore = useFirestore();
-  const storage = useStorage();
 
   const stopCameraStream = useCallback(() => {
       if (videoRef.current && videoRef.current.srcObject) {
@@ -186,12 +186,16 @@ export default function ScanPage() {
             quantity: editingQuantity,
         };
 
-        if (capturedImage && storage) {
+        if (capturedImage) {
             setIsUploading(true);
-            const storageRef = ref(storage, `inventory_images/${scannedItem.id}_${Date.now()}.jpg`);
-            const uploadResult = await uploadString(storageRef, capturedImage, 'data_url');
-            const downloadURL = await getDownloadURL(uploadResult.ref);
-            updates.imageUrl = downloadURL;
+            const base64Image = capturedImage.split(',')[1];
+            const uploadResult = await uploadImage(base64Image);
+            
+            if (uploadResult.success && uploadResult.url) {
+                updates.imageUrl = uploadResult.url;
+            } else {
+                throw new Error(uploadResult.error || 'Image upload failed');
+            }
             setIsUploading(false);
         }
         
@@ -248,8 +252,6 @@ export default function ScanPage() {
         return;
       }
       
-      startCameraStream();
-
       if (!window.BarcodeDetector) {
           toast({
               variant: 'destructive',
@@ -261,11 +263,11 @@ export default function ScanPage() {
 
     getCameraPermission();
 
-
     return () => {
       stopCameraStream();
     };
-  }, [toast, startCameraStream, stopCameraStream]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toast]);
 
   // Effect to switch camera stream when capture mode changes
   useEffect(() => {
@@ -364,7 +366,7 @@ export default function ScanPage() {
              <div>
                 {scannedItem.imageUrl && (
                     <div className='relative w-full aspect-video rounded-md overflow-hidden mb-4 border'>
-                        <Image src={scannedItem.imageUrl} alt={scannedItem.name} fill={true} objectFit="cover" />
+                        <Image src={scannedItem.imageUrl} alt={scannedItem.name} layout="fill" objectFit="cover" />
                     </div>
                 )}
                 <Table>
@@ -458,8 +460,8 @@ export default function ScanPage() {
             </div>
             <DialogFooter className='gap-2 sm:justify-between'>
                 <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>Cancel</Button>
-                <Button onClick={handleSave} disabled={isSaving}>
-                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Save Changes'}
+                <Button onClick={handleSave} disabled={isSaving || isUploading}>
+                    {isSaving || isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Save Changes'}
                 </Button>
             </DialogFooter>
         </DialogContent>
