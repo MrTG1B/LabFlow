@@ -206,9 +206,10 @@ export default function ScanPage() {
             description: `"${scannedItem.name}" has been updated.`,
         });
 
-        // Optimistically update local state
+        // Optimistically update local state then close
         setScannedItem(prev => prev ? {...prev, ...updates} : null);
         handleCloseDialog();
+        setIsScanning(true); // Explicitly restart scanning
 
     } catch (error) {
         console.error("Error saving item:", error);
