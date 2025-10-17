@@ -1,4 +1,5 @@
 
+
 export type Experiment = {
   id: string;
   name: string;
@@ -23,6 +24,13 @@ export type InventoryItem = {
   description?: string;
   barcode: string;
   imageUrl?: string;
+  vendorId?: string;
+  rate?: number;
+};
+
+export type Vendor = {
+  id: string;
+  name: string;
 };
 
 export type Equipment = {

@@ -12,10 +12,13 @@ import {
 } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import Barcode from 'react-barcode';
-import type { InventoryItem } from '@/lib/types';
+import type { InventoryItem, Vendor } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { enhanceDescription } from '@/app/(app)/scan/actions';
 import { Loader2, Sparkles } from 'lucide-react';
+import { useDoc, useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { useMemoFirebase } from '@/firebase/provider';
 
 interface ItemDetailsDialogProps {
   item: InventoryItem;
@@ -26,6 +29,14 @@ interface ItemDetailsDialogProps {
 export function ItemDetailsDialog({ item, open, onOpenChange }: ItemDetailsDialogProps) {
     const [enhancedDescription, setEnhancedDescription] = useState<string | null>(null);
     const [isEnhancing, setIsEnhancing] = useState(false);
+    const firestore = useFirestore();
+
+    const vendorRef = useMemoFirebase(() => {
+        if (!firestore || !item.vendorId) return null;
+        return doc(firestore, 'vendors', item.vendorId);
+    }, [firestore, item.vendorId]);
+    const { data: vendor } = useDoc<Vendor>(vendorRef);
+
 
     const enhanceItemDescription = useCallback(async (itemToEnhance: InventoryItem) => {
         if (!itemToEnhance.description || itemToEnhance.description.length < 20) {
@@ -84,6 +95,14 @@ export function ItemDetailsDialog({ item, open, onOpenChange }: ItemDetailsDialo
                             <TableRow>
                                 <TableCell className="font-semibold">Part Number</TableCell>
                                 <TableCell>{item.partNumber || 'N/A'}</TableCell>
+                            </TableRow>
+                             <TableRow>
+                                <TableCell className="font-semibold">Vendor</TableCell>
+                                <TableCell>{vendor?.name || 'None'}</TableCell>
+                            </TableRow>
+                             <TableRow>
+                                <TableCell className="font-semibold">Rate</TableCell>
+                                <TableCell>{item.rate ? `$${item.rate.toFixed(2)}` : 'N/A'}</TableCell>
                             </TableRow>
                             <TableRow>
                                 <TableCell className="font-semibold align-top">Description</TableCell>

@@ -33,11 +33,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useFirestore } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
-import { InventoryItem, inventoryItemTypes } from '@/lib/types';
+import { InventoryItem, inventoryItemTypes, Vendor } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -50,6 +50,8 @@ const formSchema = z.object({
   partNumber: z.string().optional(),
   description: z.string().optional(),
   barcode: z.string().optional(),
+  vendorId: z.string().optional(),
+  rate: z.coerce.number().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -64,6 +66,13 @@ export function AddItemDialog() {
   const { toast } = useToast();
   const printComponentRef = useRef(null);
 
+  const vendorsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'vendors'), orderBy('name', 'asc'));
+  }, [firestore]);
+  const { data: vendors } = useCollection<Vendor>(vendorsQuery);
+
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -74,6 +83,8 @@ export function AddItemDialog() {
       partNumber: '',
       description: '',
       barcode: '',
+      vendorId: 'None',
+      rate: undefined,
     },
   });
   
@@ -111,6 +122,8 @@ export function AddItemDialog() {
         partNumber: values.partNumber,
         description: values.description,
         barcode: barcode,
+        vendorId: values.vendorId === 'None' ? undefined : values.vendorId,
+        rate: values.rate,
       };
       await addDocumentNonBlocking(inventoryCol, newItem);
 
@@ -252,6 +265,47 @@ export function AddItemDialog() {
                 />
               </div>
               
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <FormField
+                        control={form.control}
+                        name="vendorId"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Vendor</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value || 'None'}>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a vendor" />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="None">None</SelectItem>
+                                    {vendors?.map((vendor) => (
+                                        <SelectItem key={vendor.id} value={vendor.id}>
+                                            {vendor.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                    <FormField
+                        control={form.control}
+                        name="rate"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Rate (per unit)</FormLabel>
+                            <FormControl>
+                                <Input type="number" placeholder="0.00" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+
               <FormField
                 control={form.control}
                 name="barcode"

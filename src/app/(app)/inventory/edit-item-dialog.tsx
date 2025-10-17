@@ -31,11 +31,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useFirestore } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { doc, collection, query, orderBy } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
-import { InventoryItem, inventoryItemTypes } from '@/lib/types';
+import { InventoryItem, inventoryItemTypes, Vendor } from '@/lib/types';
 import { Textarea } from '@/components/ui/textarea';
 
 const formSchema = z.object({
@@ -47,6 +47,8 @@ const formSchema = z.object({
   partNumber: z.string().optional(),
   description: z.string().optional(),
   barcode: z.string(),
+  vendorId: z.string().optional(),
+  rate: z.coerce.number().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -62,13 +64,25 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
   const firestore = useFirestore();
   const { toast } = useToast();
 
+  const vendorsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'vendors'), orderBy('name', 'asc'));
+  }, [firestore]);
+  const { data: vendors } = useCollection<Vendor>(vendorsQuery);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: item,
+    defaultValues: {
+      ...item,
+      vendorId: item.vendorId || 'None',
+    },
   });
 
   useEffect(() => {
-    form.reset(item);
+    form.reset({
+      ...item,
+      vendorId: item.vendorId || 'None',
+    });
   }, [item, form]);
 
 
@@ -80,6 +94,7 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
       const itemRef = doc(firestore, 'inventory', item.id);
       const updatedItem: Omit<InventoryItem, 'id'> = {
         ...values,
+        vendorId: values.vendorId === 'None' ? undefined : values.vendorId,
       };
       
       await setDocumentNonBlocking(itemRef, updatedItem, { merge: true });
@@ -210,6 +225,46 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
                   )}
                 />
               </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <FormField
+                        control={form.control}
+                        name="vendorId"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Vendor</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value || 'None'}>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a vendor" />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="None">None</SelectItem>
+                                    {vendors?.map((vendor) => (
+                                        <SelectItem key={vendor.id} value={vendor.id}>
+                                            {vendor.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                    <FormField
+                        control={form.control}
+                        name="rate"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Rate (per unit)</FormLabel>
+                            <FormControl>
+                                <Input type="number" placeholder="0.00" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
               
               <FormField
                 control={form.control}

@@ -71,9 +71,34 @@
           "type": "string",
           "description": "URL of an image of the component.",
           "format": "uri"
+        },
+        "vendorId": {
+            "type": "string",
+            "description": "The ID of the vendor who supplies this item."
+        },
+        "rate": {
+            "type": "number",
+            "description": "The cost per unit for this item."
         }
       },
       "required": ["id", "name", "quantity", "unit", "type", "barcode"]
+    },
+    "Vendor": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Vendor",
+      "type": "object",
+      "description": "Represents a supplier or vendor of components.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the vendor."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the vendor."
+        }
+      },
+      "required": ["id", "name"]
     }
   },
   "auth": {
@@ -109,6 +134,22 @@
             {
               "name": "inventoryItemId",
               "description": "Unique identifier for the inventory item."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/vendors/{vendorId}",
+        "definition": {
+          "entityName": "Vendor",
+          "schema": {
+            "$ref": "#/backend/entities/Vendor"
+          },
+          "description": "Stores vendor data. Indexed by vendorId.",
+          "params": [
+            {
+              "name": "vendorId",
+              "description": "Unique identifier for the vendor."
             }
           ]
         }

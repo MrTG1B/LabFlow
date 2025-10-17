@@ -15,18 +15,21 @@ import {
   BookOpen,
   CircuitBoard,
   ScanLine,
+  Users,
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const desktopLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/inventory", label: "Inventory", icon: Boxes },
+  { href: "/vendors", label: "Vendors", icon: Users },
   { href: "/literature-review", label: "AI Review", icon: BookOpen },
 ];
 
 const mobileLinks = [
     { href: "/scan", label: "Scan", icon: ScanLine },
     { href: "/inventory", label: "Inventory", icon: Boxes },
+    { href: "/vendors", label: "Vendors", icon: Users },
     { href: "/literature-review", label: "AI Review", icon: BookOpen },
 ]
 
