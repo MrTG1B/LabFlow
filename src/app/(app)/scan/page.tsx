@@ -31,6 +31,7 @@ import { enhanceDescription } from './actions';
 import { Input } from '@/components/ui/input';
 import { uploadImage } from './upload-image-action';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Label } from '@/components/ui/label';
 
 
 // Polyfill for BarcodeDetector
@@ -63,12 +64,10 @@ export default function ScanPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [isCaptureMode, setIsCaptureMode] = useState(false);
 
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const captureVideoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const firestore = useFirestore();
 
@@ -78,46 +77,6 @@ export default function ScanPage() {
   }, [firestore, scannedItem?.vendorId]);
   const { data: vendor } = useDoc<Vendor>(vendorRef);
 
-
-  const stopCameraStream = useCallback(() => {
-      const stopStream = (ref: React.RefObject<HTMLVideoElement>) => {
-        if (ref.current && ref.current.srcObject) {
-            const stream = ref.current.srcObject as MediaStream;
-            stream.getTracks().forEach((track) => track.stop());
-            ref.current.srcObject = null;
-        }
-      }
-      stopStream(videoRef);
-      stopStream(captureVideoRef);
-    }, []);
-  
-  const startCameraStream = useCallback(async (videoElement: HTMLVideoElement | null) => {
-    stopCameraStream(); // Ensure any existing stream is stopped
-    if (!videoElement) return;
-
-    try {
-        const constraints: MediaStreamConstraints = {
-            video: { 
-                facingMode: 'environment'
-            }
-        };
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        setHasCameraPermission(true);
-
-        videoElement.srcObject = stream;
-        await videoElement.play();
-        return stream;
-    } catch (error) {
-        console.error('Error accessing camera:', error);
-        setHasCameraPermission(false);
-        toast({
-            variant: 'destructive',
-            title: 'Camera Access Denied',
-            description: 'Please enable camera permissions in your browser settings to use this feature.',
-        });
-        return null;
-    }
-  }, [toast, stopCameraStream]);
 
   const enhanceItemDescription = useCallback(async (item: InventoryItem) => {
     if (!item.description || item.description.length < 20) {
@@ -189,6 +148,7 @@ export default function ScanPage() {
     setIsEnhancing(false);
     setIsEditing(false);
     setCapturedImage(null);
+    setIsScanning(true);
   };
 
   const handleSave = async () => {
@@ -213,6 +173,8 @@ export default function ScanPage() {
                 throw new Error(uploadResult.error || 'Image upload failed');
             }
             setIsUploading(false);
+        } else if (capturedImage === null) {
+          updates.imageUrl = '';
         }
         
         setDocumentNonBlocking(itemRef, updates, { merge: true });
@@ -237,108 +199,115 @@ export default function ScanPage() {
     }
   };
 
-  const handleCaptureImage = () => {
-    if (captureVideoRef.current && canvasRef.current) {
-        const video = captureVideoRef.current;
-        const canvas = canvasRef.current;
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const context = canvas.getContext('2d');
-        if (context) {
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-            setCapturedImage(dataUrl);
-        }
+  const handleImageFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setCapturedImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
     }
-    handleCloseCaptureDialog();
   };
-
-  const handleCloseCaptureDialog = () => {
-    setIsCaptureMode(false);
-  }
-
-  // Centralized effect for camera management
-  useEffect(() => {
-    let stream: MediaStream | null = null;
-    let cancelled = false;
-
-    const manageCamera = async () => {
-      stopCameraStream(); // Stop any active streams
-      if (cancelled) return;
-
-      if (isCaptureMode) {
-        await startCameraStream(captureVideoRef.current);
-        setIsScanning(false);
-      } else if (!scannedItem) {
-        stream = await startCameraStream(videoRef.current);
-        if(stream && !cancelled) {
-          setIsScanning(true);
-        }
-      } else {
-        setIsScanning(false);
-      }
-    };
-
-    manageCamera();
-
-    return () => {
-      cancelled = true;
-      stopCameraStream();
-    };
-  }, [isCaptureMode, scannedItem, startCameraStream, stopCameraStream]);
-
 
   // Effect for barcode detection interval, controlled by isScanning state
   useEffect(() => {
     let scanInterval: NodeJS.Timeout | null = null;
-    
-    if (isScanning && hasCameraPermission && window.BarcodeDetector) {
-      const barcodeDetector = new window.BarcodeDetector({
-        formats: ['ean_13', 'ean_8', 'qr_code', 'code_128', 'code_39', 'upc_a', 'upc_e'],
-      });
+    let stream: MediaStream | null = null;
 
-      scanInterval = setInterval(async () => {
-        if (videoRef.current && videoRef.current.readyState === 4) {
-          try {
-            const barcodes = await barcodeDetector.detect(videoRef.current);
+    const startScanning = async () => {
+        if (isScanning && hasCameraPermission && window.BarcodeDetector && videoRef.current) {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                    videoRef.current.play();
+                }
 
-            if (barcodes.length > 0) {
-              handleBarcodeScanned(barcodes[0].rawValue);
+                const barcodeDetector = new window.BarcodeDetector({
+                    formats: ['ean_13', 'ean_8', 'qr_code', 'code_128', 'code_39', 'upc_a', 'upc_e'],
+                });
+
+                scanInterval = setInterval(async () => {
+                    if (videoRef.current && videoRef.current.readyState === 4) {
+                        try {
+                            const barcodes = await barcodeDetector.detect(videoRef.current);
+                            if (barcodes.length > 0) {
+                                handleBarcodeScanned(barcodes[0].rawValue);
+                            }
+                        } catch (error) {
+                            console.error('Barcode detection error:', error);
+                        }
+                    }
+                }, 500);
+            } catch (error) {
+                console.error('Error starting camera stream:', error);
+                setHasCameraPermission(false);
             }
-          } catch (error) {
-            console.error('Barcode detection error:', error);
-            setIsScanning(false); // Stop on error
-          }
         }
-      }, 500); // Scan every 500ms
+    };
+    
+    const stopScanning = () => {
+        if (scanInterval) {
+            clearInterval(scanInterval);
+        }
+        if (videoRef.current && videoRef.current.srcObject) {
+            const currentStream = videoRef.current.srcObject as MediaStream;
+            currentStream.getTracks().forEach(track => track.stop());
+            videoRef.current.srcObject = null;
+        }
+        stream?.getTracks().forEach(track => track.stop());
+    }
+
+    if (isScanning) {
+        startScanning();
+    } else {
+        stopScanning();
     }
 
     return () => {
-      if (scanInterval) {
-        clearInterval(scanInterval);
-      }
+        stopScanning();
     };
-  }, [isScanning, hasCameraPermission, handleBarcodeScanned]);
+}, [isScanning, hasCameraPermission, handleBarcodeScanned]);
 
-  // Effect to check for initial browser support
+
+  // Effect to check for initial browser support and permission
   useEffect(() => {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setHasCameraPermission(false);
-        toast({
-          variant: 'destructive',
-          title: 'Unsupported Browser',
-          description: 'Your browser does not support camera access.',
-        });
-        return;
-    }
-      
-    if (!window.BarcodeDetector) {
-        toast({
-            variant: 'destructive',
-            title: 'Unsupported Browser',
-            description: 'Barcode detection is not supported in your browser.',
-        });
-    }
+    const checkPermissions = async () => {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            setHasCameraPermission(false);
+            toast({
+                variant: 'destructive',
+                title: 'Unsupported Browser',
+                description: 'Your browser does not support camera access.',
+            });
+            return;
+        }
+        if (!window.BarcodeDetector) {
+            toast({
+                variant: 'destructive',
+                title: 'Unsupported Browser',
+                description: 'Barcode detection is not supported in your browser.',
+            });
+        }
+        try {
+            // Check permission without starting stream
+            const permission = await navigator.permissions.query({ name: 'camera' as PermissionName });
+            if (permission.state === 'granted') {
+                setHasCameraPermission(true);
+                setIsScanning(true);
+            } else if (permission.state === 'prompt') {
+                setHasCameraPermission(null); // Will ask when needed
+                setIsScanning(true); // Attempt to start will trigger prompt
+            } else {
+                setHasCameraPermission(false);
+            }
+        } catch (error) {
+            console.error("Error checking camera permissions", error);
+            setHasCameraPermission(false);
+        }
+    };
+    checkPermissions();
   }, [toast]);
 
 
@@ -375,7 +344,6 @@ export default function ScanPage() {
         <CardContent>
           <div className="relative aspect-video w-full overflow-hidden rounded-md border bg-muted">
             <video ref={videoRef} className="h-full w-full object-cover" autoPlay playsInline muted />
-            <canvas ref={canvasRef} className="hidden"></canvas>
 
             {isFindingItem && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80">
@@ -393,9 +361,9 @@ export default function ScanPage() {
                 </Alert>
               </div>
             )}
-            {hasCameraPermission === null && (
+            {hasCameraPermission === null && !isScanning && (
               <div className="absolute inset-0 flex items-center justify-center bg-background/80">
-                <p>Requesting camera permission...</p>
+                <Button onClick={() => setIsScanning(true)}>Start Scanner</Button>
               </div>
             )}
             {isScanning && hasCameraPermission && (
@@ -464,11 +432,11 @@ export default function ScanPage() {
             </DialogHeader>
             <div className="space-y-4 py-4">
                 <div>
-                    <label htmlFor="quantity" className="block text-sm font-medium text-muted-foreground mb-1">Quantity</label>
+                    <Label htmlFor="quantity" className="block text-sm font-medium text-muted-foreground mb-1">Quantity</Label>
                     <Input id="quantity" type="number" value={editingQuantity} onChange={e => setEditingQuantity(parseInt(e.target.value, 10) || 0)} />
                 </div>
                  <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1">Component Image</label>
+                    <Label className="block text-sm font-medium text-muted-foreground mb-1">Component Image</Label>
                     <div className="relative p-2 border rounded-md min-h-[100px] flex items-center justify-center">
                         {capturedImage ? (
                              <div className="relative w-full">
@@ -478,10 +446,20 @@ export default function ScanPage() {
                                 </Button>
                              </div>
                         ) : (
-                            <Button variant="outline" onClick={() => setIsCaptureMode(true)} disabled={isSaving}>
-                                <ImagePlus className="mr-2 h-4 w-4" />
-                                Add Image
-                            </Button>
+                            <>
+                                <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isSaving}>
+                                    <ImagePlus className="mr-2 h-4 w-4" />
+                                    Add Image
+                                </Button>
+                                <Input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    capture="environment"
+                                    onChange={handleImageFileChange}
+                                    className="hidden"
+                                />
+                            </>
                         )}
                     </div>
                 </div>
@@ -494,27 +472,8 @@ export default function ScanPage() {
             </DialogFooter>
         </DialogContent>
       </Dialog>
-
-       <Dialog open={isCaptureMode} onOpenChange={(open) => { if (!open) { handleCloseCaptureDialog() } }}>
-            <DialogContent className="max-w-3xl">
-                <DialogHeader>
-                    <DialogTitle>Capture Component Image</DialogTitle>
-                </DialogHeader>
-                <div className="relative aspect-video w-full overflow-hidden rounded-md border bg-muted">
-                    <video ref={captureVideoRef} className="h-full w-full object-cover" autoPlay playsInline muted />
-                </div>
-                <DialogFooter className='sm:justify-end gap-2'>
-                     <Button variant="outline" onClick={handleCloseCaptureDialog}>
-                        Cancel
-                    </Button>
-                    <Button onClick={handleCaptureImage}>
-                        <Camera className="mr-2 h-4 w-4" />
-                        Capture
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-       </Dialog>
     </>
   );
 }
 
+    
