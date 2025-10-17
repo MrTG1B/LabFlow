@@ -26,6 +26,7 @@ export type InventoryItem = {
   imageUrl?: string;
   vendorId?: string;
   rate?: number;
+  createdAt: string;
 };
 
 export type Vendor = {

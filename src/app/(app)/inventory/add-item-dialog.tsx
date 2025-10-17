@@ -124,6 +124,7 @@ export function AddItemDialog() {
         barcode: barcode,
         vendorId: values.vendorId === 'None' ? undefined : values.vendorId,
         rate: values.rate,
+        createdAt: new Date().toISOString(),
       };
       await addDocumentNonBlocking(inventoryCol, newItem);
 

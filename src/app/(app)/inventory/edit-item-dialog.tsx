@@ -49,6 +49,7 @@ const formSchema = z.object({
   barcode: z.string(),
   vendorId: z.string().optional(),
   rate: z.coerce.number().optional(),
+  createdAt: z.string(), // Keep existing createdAt
 });
 
 type FormValues = z.infer<typeof formSchema>;
