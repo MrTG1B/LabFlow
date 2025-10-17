@@ -20,12 +20,13 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Camera, Loader2 } from 'lucide-react';
+import { Camera, Loader2, Sparkles } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import type { InventoryItem } from '@/lib/types';
 import Barcode from 'react-barcode';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
+import { enhanceDescription } from './actions';
 
 // Polyfill for BarcodeDetector
 interface BarcodeDetectorOptions {
@@ -50,12 +51,38 @@ export default function ScanPage() {
   const [scannedItem, setScannedItem] = useState<InventoryItem | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [isFindingItem, setIsFindingItem] = useState(false);
+  const [enhancedDescription, setEnhancedDescription] = useState<string | null>(null);
+  const [isEnhancing, setIsEnhancing] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
   const firestore = useFirestore();
 
+  const enhanceItemDescription = useCallback(async (item: InventoryItem) => {
+    if (!item.description || item.description.length < 20) {
+      setIsEnhancing(true);
+      setEnhancedDescription(null);
+      try {
+        const result = await enhanceDescription({
+          name: item.name,
+          type: item.type,
+          value: item.value || '',
+          partNumber: item.partNumber || '',
+        });
+        if (result.success && result.description) {
+          setEnhancedDescription(result.description);
+        }
+      } catch (error) {
+        console.error("Failed to enhance description:", error);
+      } finally {
+        setIsEnhancing(false);
+      }
+    } else {
+      setEnhancedDescription(null);
+    }
+  }, []);
+
   const handleBarcodeScanned = useCallback(async (barcode: string) => {
-    if (!firestore) return;
+    if (!firestore || isFindingItem) return;
     setIsFindingItem(true);
     setIsScanning(false); // Stop scanning while we search
     
@@ -66,7 +93,9 @@ export default function ScanPage() {
 
       if (!querySnapshot.empty) {
         const doc = querySnapshot.docs[0];
-        setScannedItem({ id: doc.id, ...doc.data() } as InventoryItem);
+        const item = { id: doc.id, ...doc.data() } as InventoryItem;
+        setScannedItem(item);
+        enhanceItemDescription(item);
       } else {
         toast({
           variant: 'destructive',
@@ -88,10 +117,12 @@ export default function ScanPage() {
     } finally {
       setIsFindingItem(false);
     }
-  }, [firestore, toast]);
+  }, [firestore, toast, isFindingItem, enhanceItemDescription]);
   
   const handleCloseDialog = () => {
     setScannedItem(null);
+    setEnhancedDescription(null);
+    setIsEnhancing(false);
     setIsScanning(true); // Re-enable scanning
   };
 
@@ -251,6 +282,30 @@ export default function ScanPage() {
                             <TableCell className="font-semibold">Part Number</TableCell>
                             <TableCell>{scannedItem.partNumber || 'N/A'}</TableCell>
                         </TableRow>
+                        <TableRow>
+                            <TableCell className="font-semibold">Description</TableCell>
+                            <TableCell>
+                                {scannedItem.description || 'No description provided.'}
+                            </TableCell>
+                        </TableRow>
+                         {isEnhancing && (
+                            <TableRow>
+                                <TableCell colSpan={2} className='text-center'>
+                                    <Loader2 className="h-4 w-4 animate-spin inline mr-2" /> Enhancing description...
+                                </TableCell>
+                            </TableRow>
+                         )}
+                         {enhancedDescription && (
+                             <TableRow>
+                                 <TableCell className="font-semibold align-top">
+                                     <div className='flex items-center gap-1'>
+                                        <Sparkles className="h-4 w-4 text-primary" />
+                                        AI Description
+                                     </div>
+                                 </TableCell>
+                                 <TableCell>{enhancedDescription}</TableCell>
+                             </TableRow>
+                         )}
                     </TableBody>
                 </Table>
                 <div className="mt-4 flex items-center justify-center bg-white p-2 rounded-md">

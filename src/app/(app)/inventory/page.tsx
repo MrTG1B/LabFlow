@@ -24,6 +24,10 @@ import type { InventoryItem, InventoryItemType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { AddItemDialog } from './add-item-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ItemActionMenu } from './item-action-menu';
+import { useState } from 'react';
+import { ItemDetailsDialog } from './item-details-dialog';
+import { EditItemDialog } from './edit-item-dialog';
 
 const typeColorMap: Record<InventoryItemType, string> = {
     'Capacitor': 'bg-blue-500/20 text-blue-500 border-blue-500/50',
@@ -36,6 +40,10 @@ const typeColorMap: Record<InventoryItemType, string> = {
 export default function InventoryPage() {
   const firestore = useFirestore();
   const { isUserLoading } = useUser();
+  
+  const [viewingItem, setViewingItem] = useState<InventoryItem | null>(null);
+  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+
 
   const inventoryQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -47,64 +55,90 @@ export default function InventoryPage() {
   const isDataLoading = isLoading || isUserLoading;
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Inventory</CardTitle>
-          <CardDescription>
-            Manage electronic components, including storage locations.
-          </CardDescription>
-        </div>
-        <AddItemDialog />
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Item Name</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Quantity</TableHead>
-              <TableHead>Value</TableHead>
-              <TableHead>Barcode</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isDataLoading && (
-              Array.from({ length: 3 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-36" /></TableCell>
-                </TableRow>
-              ))
-            )}
-            {!isDataLoading && inventory?.length === 0 && (
+    <>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Inventory</CardTitle>
+            <CardDescription>
+              Manage electronic components, including storage locations.
+            </CardDescription>
+          </div>
+          <AddItemDialog />
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
-                  No inventory items found. Add one to get started.
-                </TableCell>
+                <TableHead>Item Name</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Quantity</TableHead>
+                <TableHead>Value</TableHead>
+                <TableHead>Barcode</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            )}
-            {!isDataLoading && inventory?.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell className="font-medium">{item.name}</TableCell>
-                <TableCell>
-                  <Badge variant={'outline'} className={cn(typeColorMap[item.type])}>
-                    {item.type}
-                  </Badge>
-                </TableCell>
-                <TableCell className={cn(item.quantity < 10 ? "text-red-500" : "")}>
-                  {item.quantity} {item.unit}
-                </TableCell>
-                <TableCell>{item.value}</TableCell>
-                <TableCell className="font-mono text-xs">{item.barcode}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+            </TableHeader>
+            <TableBody>
+              {isDataLoading && (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-36" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                  </TableRow>
+                ))
+              )}
+              {!isDataLoading && inventory?.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center">
+                    No inventory items found. Add one to get started.
+                  </TableCell>
+                </TableRow>
+              )}
+              {!isDataLoading && inventory?.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className="font-medium">{item.name}</TableCell>
+                  <TableCell>
+                    <Badge variant={'outline'} className={cn(typeColorMap[item.type])}>
+                      {item.type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className={cn(item.quantity < 10 ? "text-red-500" : "")}>
+                    {item.quantity} {item.unit}
+                  </TableCell>
+                  <TableCell>{item.value}</TableCell>
+                  <TableCell className="font-mono text-xs">{item.barcode}</TableCell>
+                  <TableCell className="text-right">
+                    <ItemActionMenu 
+                      onView={() => setViewingItem(item)}
+                      onEdit={() => setEditingItem(item)}
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {viewingItem && (
+        <ItemDetailsDialog 
+          item={viewingItem}
+          open={!!viewingItem}
+          onOpenChange={(isOpen) => !isOpen && setViewingItem(null)}
+        />
+      )}
+
+      {editingItem && (
+        <EditItemDialog
+          item={editingItem}
+          open={!!editingItem}
+          onOpenChange={(isOpen) => !isOpen && setEditingItem(null)}
+        />
+      )}
+    </>
   );
 }
