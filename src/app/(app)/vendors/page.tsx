@@ -20,7 +20,7 @@ import {
 import { useCollection, useUser } from '@/firebase';
 import { collection, query, orderBy, doc } from 'firebase/firestore';
 import { useFirestore, useMemoFirebase } from '@/firebase/provider';
-import type { Vendor } from '@/lib/types';
+import type { Vendor, VendorType } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AddVendorDialog } from './add-vendor-dialog';
 import { EditVendorDialog } from './edit-vendor-dialog';
@@ -39,6 +39,13 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+
+const typeColorMap: Record<VendorType, string> = {
+    'Online': 'bg-green-500/20 text-green-500 border-green-500/50',
+    'Offline': 'bg-blue-500/20 text-blue-500 border-blue-500/50',
+};
 
 
 export default function VendorsPage() {
@@ -84,6 +91,7 @@ export default function VendorsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Vendor Name</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -92,13 +100,14 @@ export default function VendorsPage() {
                 Array.from({ length: 3 }).map((_, i) => (
                   <TableRow key={i}>
                     <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                     <TableCell><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                   </TableRow>
                 ))
               )}
               {!isDataLoading && vendors?.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={2} className="text-center">
+                  <TableCell colSpan={3} className="text-center">
                     No vendors found. Add one to get started.
                   </TableCell>
                 </TableRow>
@@ -106,6 +115,13 @@ export default function VendorsPage() {
               {!isDataLoading && vendors?.map((vendor) => (
                 <TableRow key={vendor.id}>
                   <TableCell className="font-medium">{vendor.name}</TableCell>
+                  <TableCell>
+                    {vendor.type && (
+                       <Badge variant={'outline'} className={cn(typeColorMap[vendor.type])}>
+                         {vendor.type}
+                       </Badge>
+                    )}
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-2 justify-end">
                       <Button variant="ghost" size="icon" onClick={() => setEditingVendor(vendor)}>
