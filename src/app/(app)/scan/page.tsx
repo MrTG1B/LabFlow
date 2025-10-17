@@ -71,23 +71,24 @@ export default function ScanPage() {
   const firestore = useFirestore();
   const storage = useStorage();
 
-  const stopCameraStream = () => {
+  const stopCameraStream = useCallback(() => {
       if (videoRef.current && videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
         stream.getTracks().forEach((track) => track.stop());
         videoRef.current.srcObject = null;
       }
-    };
+    }, []);
   
-  const startCameraStream = useCallback(async (isCapture:boolean) => {
+  const startCameraStream = useCallback(async () => {
     stopCameraStream(); // Ensure any existing stream is stopped
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: isCapture ? 'user' : 'environment' } });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
         setHasCameraPermission(true);
         if (videoRef.current) {
             videoRef.current.srcObject = stream;
+            videoRef.current.play();
         }
-        if(!isCapture) {
+        if(!isCaptureMode){
             setIsScanning(true);
         }
     } catch (error) {
@@ -99,7 +100,7 @@ export default function ScanPage() {
             description: 'Please enable camera permissions in your browser settings to use this feature.',
         });
     }
-  }, [toast]);
+  }, [toast, stopCameraStream, isCaptureMode]);
 
   const enhanceItemDescription = useCallback(async (item: InventoryItem) => {
     if (!item.description || item.description.length < 20) {
@@ -229,7 +230,7 @@ export default function ScanPage() {
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
             const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
             setCapturedImage(dataUrl);
-            setIsCaptureMode(false);
+            setIsCaptureMode(false); // This will trigger the useEffect to go back to scanning mode
         }
     }
   };
@@ -247,7 +248,7 @@ export default function ScanPage() {
         return;
       }
       
-      startCameraStream(false);
+      startCameraStream();
 
       if (!window.BarcodeDetector) {
           toast({
@@ -258,17 +259,18 @@ export default function ScanPage() {
       }
     };
 
-    if (isCaptureMode) {
-        startCameraStream(true);
-    } else {
-        getCameraPermission();
-    }
+    getCameraPermission();
 
 
     return () => {
       stopCameraStream();
     };
-  }, [toast, isCaptureMode, startCameraStream]);
+  }, [toast, startCameraStream, stopCameraStream]);
+
+  // Effect to switch camera stream when capture mode changes
+  useEffect(() => {
+      startCameraStream();
+  }, [isCaptureMode, startCameraStream]);
 
   // Effect for barcode detection interval, controlled by isScanning state
   useEffect(() => {
@@ -471,7 +473,7 @@ export default function ScanPage() {
                 <div className="relative aspect-video w-full overflow-hidden rounded-md border bg-muted">
                     <video ref={videoRef} className="h-full w-full object-cover" autoPlay playsInline muted />
                 </div>
-                <DialogFooter>
+                <DialogFooter className='sm:justify-end gap-2'>
                      <Button variant="outline" onClick={() => setIsCaptureMode(false)}>
                         Cancel
                     </Button>
@@ -485,3 +487,5 @@ export default function ScanPage() {
     </>
   );
 }
+
+    
