@@ -1,83 +1,69 @@
-/**
- * @file Firestore Security Rules
- * @description This ruleset enforces a strict user-ownership model for user profiles
- * and allows public read access to inventory and vendor data while restricting writes to authorized users.
- *
- * Data Structure:
- * - /users/{userId}: Stores individual user profiles, accessible only to the user themselves.
- * - /inventory/{inventoryItemId}: Stores inventory items, publicly readable but write-protected.
- * - /vendors/{vendorId}: Stores vendor information, publicly readable but write-protected.
- *
- * Key Security Decisions:
- * - User profiles are strictly private; users can only access their own data.
- * - Inventory and vendor data are publicly readable.  Writes are currently disallowed but a TODO has been added for future implementation with an owner field.
- * - Listing of users is disallowed.
- * - Data shape validation is minimized for rapid prototyping.
- *
- * Denormalization for Authorization:
- * - Currently not used.
- *
- * Structural Segregation:
- * - Private user data is stored under the /users/{userId} collection, separate from public collections like /inventory and /vendors.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to user profile data.
+     * @description Grants the owner full access to their user document.
      * @path /users/{userId}
-     * @allow (create) User with uid 'user_abc' can create their profile.
-     * @allow (get) User with uid 'user_abc' can read their profile.
-     * @allow (update) User with uid 'user_abc' can update their profile.
-     * @allow (delete) User with uid 'user_abc' can delete their profile.
-     * @deny (create) User with uid 'user_xyz' cannot create a profile for user 'user_abc'.
-     * @deny (get) User with uid 'user_xyz' cannot read the profile of user 'user_abc'.
-     * @deny (update) User with uid 'user_xyz' cannot update the profile of user 'user_abc'.
-     * @deny (delete) User with uid 'user_xyz' cannot delete the profile of user 'user_abc'.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) User with matching UID can create their profile.
+     * @allow (get, list, update, delete) Owner can read, update, and delete their profile.
+     * @deny (create) Non-owner cannot create a user profile.
+     * @deny (update, delete) Non-owner cannot modify or delete another user's profile.
+     * @principle Enforces user-ownership for profile data.
      */
     match /users/{userId} {
       function isOwner(userId) {
         return request.auth != null && request.auth.uid == userId;
       }
+      function isSignedIn() {
+        return request.auth != null;
+      }
 
       allow get: if isOwner(userId);
       allow list: if false;
-
-      allow create: if isOwner(userId) && request.resource.data.uid == userId;
-      allow update: if isOwner(userId) && request.resource.data.uid == resource.data.uid && resource != null;
-      allow delete: if isOwner(userId) && resource != null;
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
 
     /**
-     * @description Controls access to inventory items.
+     * @description Allows authenticated users to read, create, update, and delete inventory items.
      * @path /inventory/{inventoryItemId}
-     * @allow (get) Any user can read inventory items.
-     * @allow (list) Any user can list inventory items.
-     * @deny (create) No user can create inventory items without proper authorization.
-     * @deny (update) No user can update inventory items without proper authorization.
-     * @deny (delete) No user can delete inventory items without proper authorization.
-     * @principle Allows public read access but restricts write access.
+     * @allow (get, list) Authenticated user can read any item.
+     * @allow (create, update, delete) Authenticated user can create, update or delete any item.
+     * @deny Requests from unauthenticated users.
+     * @principle Allows any authenticated user to manage inventory items for prototyping.
      */
     match /inventory/{inventoryItemId} {
-      allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to vendor data.
+     * @description Allows authenticated users to read, create, update, and delete vendor information.
      * @path /vendors/{vendorId}
-     * @allow (get) Any user can read vendor data.
-     * @allow (list) Any user can list vendor data.
-     * @deny (create) No user can create vendor data without proper authorization.
-     * @deny (update) No user can update vendor data without proper authorization.
-     * @deny (delete) No user can delete vendor data without proper authorization.
-     * @principle Allows public read access but restricts write access.
+     * @allow (get, list) Authenticated user can read any vendor.
+     * @allow (create, update, delete) Authenticated user can create, update or delete any vendor.
+     * @deny Requests from unauthenticated users.
+     * @principle Allows any authenticated user to manage vendor information for prototyping.
      */
     match /vendors/{vendorId} {
-      allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
   }
 }
