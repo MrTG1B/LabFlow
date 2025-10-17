@@ -137,7 +137,7 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Edit Inventory Item</DialogTitle>
             <DialogDescription>
@@ -146,7 +146,7 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
                   name="name"
@@ -320,3 +320,5 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
     </Dialog>
   );
 }
+
+    
