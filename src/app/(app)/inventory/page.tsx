@@ -24,10 +24,11 @@ import type { InventoryItem, InventoryItemType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { AddItemDialog } from './add-item-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ItemActionMenu } from './item-action-menu';
 import { useState } from 'react';
 import { ItemDetailsDialog } from './item-details-dialog';
 import { EditItemDialog } from './edit-item-dialog';
+import { Button } from '@/components/ui/button';
+import { View, Edit } from 'lucide-react';
 
 const typeColorMap: Record<InventoryItemType, string> = {
     'Capacitor': 'bg-blue-500/20 text-blue-500 border-blue-500/50',
@@ -112,10 +113,16 @@ export default function InventoryPage() {
                   <TableCell>{item.value}</TableCell>
                   <TableCell className="font-mono text-xs">{item.barcode}</TableCell>
                   <TableCell className="text-right">
-                    <ItemActionMenu 
-                      onView={() => setViewingItem(item)}
-                      onEdit={() => setEditingItem(item)}
-                    />
+                    <div className="flex gap-2 justify-end">
+                      <Button variant="ghost" size="icon" onClick={() => setViewingItem(item)}>
+                        <View className="h-4 w-4" />
+                        <span className="sr-only">View</span>
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => setEditingItem(item)}>
+                        <Edit className="h-4 w-4" />
+                        <span className="sr-only">Edit</span>
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

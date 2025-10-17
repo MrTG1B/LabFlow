@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -19,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Sparkles } from "lucide-react";
 import { getSummary } from "./actions";
 import { useToast } from "@/hooks/use-toast";
+import { SummarizePaperOutput } from "@/ai/flows/ai-scientific-paper-summarizer";
 
 const formSchema = z.object({
   paperText: z.string().min(100, {
@@ -27,7 +29,7 @@ const formSchema = z.object({
 });
 
 export function SummarizerForm() {
-  const [summary, setSummary] = useState<string | null>(null);
+  const [summary, setSummary] = useState<SummarizePaperOutput | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -111,7 +113,7 @@ export function SummarizerForm() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="whitespace-pre-wrap">{summary}</p>
+            <p className="whitespace-pre-wrap">{summary.summary}</p>
           </CardContent>
         </Card>
       )}

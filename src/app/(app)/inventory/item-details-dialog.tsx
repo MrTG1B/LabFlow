@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import Barcode from 'react-barcode';
 import type { InventoryItem } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { enhanceDescription } from '../scan/actions';
+import { enhanceDescription } from '@/app/(app)/scan/actions';
 import { Loader2, Sparkles } from 'lucide-react';
 
 interface ItemDetailsDialogProps {
@@ -29,23 +29,23 @@ export function ItemDetailsDialog({ item, open, onOpenChange }: ItemDetailsDialo
 
     const enhanceItemDescription = useCallback(async (itemToEnhance: InventoryItem) => {
         if (!itemToEnhance.description || itemToEnhance.description.length < 20) {
-        setIsEnhancing(true);
-        setEnhancedDescription(null);
-        try {
-            const result = await enhanceDescription({
-                name: itemToEnhance.name,
-                type: itemToEnhance.type,
-                value: itemToEnhance.value || '',
-                partNumber: itemToEnhance.partNumber || '',
-            });
-            if (result.success && result.description) {
-                setEnhancedDescription(result.description);
+            setIsEnhancing(true);
+            setEnhancedDescription(null);
+            try {
+                const result = await enhanceDescription({
+                    name: itemToEnhance.name,
+                    type: itemToEnhance.type,
+                    value: itemToEnhance.value || '',
+                    partNumber: itemToEnhance.partNumber || '',
+                });
+                if (result.success && result.description) {
+                    setEnhancedDescription(result.description);
+                }
+            } catch (error) {
+                console.error("Failed to enhance description:", error);
+            } finally {
+                setIsEnhancing(false);
             }
-        } catch (error) {
-            console.error("Failed to enhance description:", error);
-        } finally {
-            setIsEnhancing(false);
-        }
         } else {
             setEnhancedDescription(null);
         }
