@@ -22,7 +22,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Camera, Loader2, Sparkles, Edit, ImagePlus, X } from 'lucide-react';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, getDocs, limit, doc } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { InventoryItem, Vendor } from '@/lib/types';
@@ -70,6 +70,7 @@ export default function ScanPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user } = useUser();
 
   const vendorRef = useMemoFirebase(() => {
     if (!firestore || !scannedItem?.vendorId) return null;
@@ -152,13 +153,19 @@ export default function ScanPage() {
   };
 
   const handleSave = async () => {
-    if (!firestore || !scannedItem) return;
+    if (!firestore || !scannedItem || !user) return;
     setIsSaving(true);
     
     try {
         const itemRef = doc(firestore, 'inventory', scannedItem.id);
         const updates: Partial<InventoryItem> = {
             quantity: editingQuantity,
+            updatedAt: new Date().toISOString(),
+            updatedBy: {
+                uid: user.uid,
+                displayName: user.displayName,
+                post: user.post
+            }
         };
 
         if (capturedImage && capturedImage.startsWith('data:image')) {
@@ -176,7 +183,7 @@ export default function ScanPage() {
           updates.imageUrl = '';
         }
         
-        setDocumentNonBlocking(itemRef, updates, { merge: true });
+        await setDocumentNonBlocking(itemRef, updates, { merge: true });
 
         toast({
             title: 'Success!',
@@ -458,6 +465,7 @@ export default function ScanPage() {
                                     ref={fileInputRef}
                                     type="file"
                                     accept="image/*"
+                                    capture="environment"
                                     onChange={handleImageFileChange}
                                     className="hidden"
                                 />
