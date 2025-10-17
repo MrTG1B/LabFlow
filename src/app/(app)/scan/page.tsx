@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Card,
   CardContent,
@@ -48,49 +48,16 @@ declare global {
 export default function ScanPage() {
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [scannedItem, setScannedItem] = useState<InventoryItem | null>(null);
-  const [isScanning, setIsScanning] = useState(true);
+  const [isScanning, setIsScanning] = useState(false);
   const [isFindingItem, setIsFindingItem] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
   const firestore = useFirestore();
-  const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const stopScanning = () => {
-    if (scanIntervalRef.current) {
-      clearInterval(scanIntervalRef.current);
-      scanIntervalRef.current = null;
-    }
-  };
-
-  const startScanning = () => {
-    if (scanIntervalRef.current) return; // Already scanning
-
-    scanIntervalRef.current = setInterval(async () => {
-      if (videoRef.current && videoRef.current.readyState === 4 && window.BarcodeDetector) {
-        try {
-          const barcodeDetector = new window.BarcodeDetector({
-            formats: ['ean_13', 'ean_8', 'qr_code', 'code_128', 'code_39', 'upc_a', 'upc_e'],
-          });
-          const barcodes = await barcodeDetector.detect(videoRef.current);
-
-          if (barcodes.length > 0 && isScanning) {
-            const scannedValue = barcodes[0].rawValue;
-            setIsScanning(false);
-            stopScanning();
-            handleBarcodeScanned(scannedValue);
-          }
-        } catch (error) {
-          // Barcode detector may not be supported
-          console.error('Barcode detection error:', error);
-          stopScanning();
-        }
-      }
-    }, 500); // Scan every 500ms
-  };
-
-  const handleBarcodeScanned = async (barcode: string) => {
+  const handleBarcodeScanned = useCallback(async (barcode: string) => {
     if (!firestore) return;
     setIsFindingItem(true);
+    setIsScanning(false); // Stop scanning while we search
     
     try {
       const inventoryRef = collection(firestore, 'inventory');
@@ -108,7 +75,6 @@ export default function ScanPage() {
         });
         // Resume scanning if not found
         setIsScanning(true);
-        startScanning();
       }
     } catch (error) {
       console.error('Error fetching item:', error);
@@ -119,18 +85,17 @@ export default function ScanPage() {
       });
       // Resume scanning on error
       setIsScanning(true);
-      startScanning();
     } finally {
       setIsFindingItem(false);
     }
-  };
+  }, [firestore, toast]);
   
   const handleCloseDialog = () => {
     setScannedItem(null);
-    setIsScanning(true);
-    startScanning();
+    setIsScanning(true); // Re-enable scanning
   };
 
+  // Effect for camera permission and setup
   useEffect(() => {
     const getCameraPermission = async () => {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -152,7 +117,7 @@ export default function ScanPage() {
         }
 
         if (window.BarcodeDetector) {
-            startScanning();
+            setIsScanning(true); // Start scanning after permission is granted
         } else {
             toast({
                 variant: 'destructive',
@@ -174,14 +139,44 @@ export default function ScanPage() {
     getCameraPermission();
 
     return () => {
-      stopScanning();
       if (videoRef.current && videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
         stream.getTracks().forEach((track) => track.stop());
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toast]);
+
+  // Effect for barcode detection interval, controlled by isScanning state
+  useEffect(() => {
+    let scanInterval: NodeJS.Timeout | null = null;
+    
+    if (isScanning && hasCameraPermission && window.BarcodeDetector) {
+      scanInterval = setInterval(async () => {
+        if (videoRef.current && videoRef.current.readyState === 4) {
+          try {
+            const barcodeDetector = new window.BarcodeDetector({
+              formats: ['ean_13', 'ean_8', 'qr_code', 'code_128', 'code_39', 'upc_a', 'upc_e'],
+            });
+            const barcodes = await barcodeDetector.detect(videoRef.current);
+
+            if (barcodes.length > 0) {
+              handleBarcodeScanned(barcodes[0].rawValue);
+            }
+          } catch (error) {
+            console.error('Barcode detection error:', error);
+            setIsScanning(false); // Stop on error
+          }
+        }
+      }, 500); // Scan every 500ms
+    }
+
+    return () => {
+      if (scanInterval) {
+        clearInterval(scanInterval);
+      }
+    };
+  }, [isScanning, hasCameraPermission, handleBarcodeScanned]);
+
 
   return (
     <>

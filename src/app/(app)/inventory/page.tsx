@@ -20,10 +20,18 @@ import { Badge } from '@/components/ui/badge';
 import { useCollection, useUser } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { useFirestore, useMemoFirebase } from '@/firebase/provider';
-import type { InventoryItem } from '@/lib/types';
+import type { InventoryItem, InventoryItemType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { AddItemDialog } from './add-item-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+
+const typeColorMap: Record<InventoryItemType, string> = {
+    'Capacitor': 'bg-blue-500/20 text-blue-500 border-blue-500/50',
+    'Resistor': 'bg-green-500/20 text-green-500 border-green-500/50',
+    'IC': 'bg-purple-500/20 text-purple-500 border-purple-500/50',
+    'Connector': 'bg-orange-500/20 text-orange-500 border-orange-500/50',
+    'Misc': 'bg-gray-500/20 text-gray-500 border-gray-500/50',
+};
 
 export default function InventoryPage() {
   const firestore = useFirestore();
@@ -83,7 +91,7 @@ export default function InventoryPage() {
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.name}</TableCell>
                 <TableCell>
-                  <Badge variant={'outline'}>
+                  <Badge variant={'outline'} className={cn(typeColorMap[item.type])}>
                     {item.type}
                   </Badge>
                 </TableCell>

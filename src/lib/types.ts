@@ -10,10 +10,12 @@ export type Experiment = {
 
 export const inventoryItemTypes = ["Capacitor", "Resistor", "IC", "Connector", "Misc"] as const;
 
+export type InventoryItemType = typeof inventoryItemTypes[number];
+
 export type InventoryItem = {
   id: string;
   name:string;
-  type: typeof inventoryItemTypes[number];
+  type: InventoryItemType;
   quantity: number;
   unit: string;
   value?: string;
