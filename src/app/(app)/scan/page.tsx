@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import {
   Card,
   CardContent,
@@ -20,13 +21,16 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Camera, Loader2, Sparkles } from 'lucide-react';
-import { useFirestore } from '@/firebase';
-import { collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { Camera, Loader2, Sparkles, Edit, ImagePlus, Upload, X } from 'lucide-react';
+import { useFirestore, useStorage } from '@/firebase';
+import { collection, query, where, getDocs, limit, doc } from 'firebase/firestore';
+import { ref, uploadString, getDownloadURL } from 'firebase/storage';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { InventoryItem } from '@/lib/types';
 import Barcode from 'react-barcode';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { enhanceDescription } from './actions';
+import { Input } from '@/components/ui/input';
 
 // Polyfill for BarcodeDetector
 interface BarcodeDetectorOptions {
@@ -53,9 +57,19 @@ export default function ScanPage() {
   const [isFindingItem, setIsFindingItem] = useState(false);
   const [enhancedDescription, setEnhancedDescription] = useState<string | null>(null);
   const [isEnhancing, setIsEnhancing] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingQuantity, setEditingQuantity] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [isCaptureMode, setIsCaptureMode] = useState(false);
+
+
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
   const firestore = useFirestore();
+  const storage = useStorage();
 
   const enhanceItemDescription = useCallback(async (item: InventoryItem) => {
     if (!item.description || item.description.length < 20) {
@@ -95,6 +109,7 @@ export default function ScanPage() {
         const doc = querySnapshot.docs[0];
         const item = { id: doc.id, ...doc.data() } as InventoryItem;
         setScannedItem(item);
+        setEditingQuantity(item.quantity);
         enhanceItemDescription(item);
       } else {
         toast({
@@ -123,7 +138,68 @@ export default function ScanPage() {
     setScannedItem(null);
     setEnhancedDescription(null);
     setIsEnhancing(false);
+    setIsEditing(false);
+    setCapturedImage(null);
     setIsScanning(true); // Re-enable scanning
+  };
+
+  const handleSave = async () => {
+    if (!firestore || !scannedItem) return;
+    setIsSaving(true);
+    
+    try {
+        const itemRef = doc(firestore, 'inventory', scannedItem.id);
+        const updates: Partial<InventoryItem> = {
+            quantity: editingQuantity,
+        };
+
+        if (capturedImage && storage) {
+            setIsUploading(true);
+            const storageRef = ref(storage, `inventory_images/${scannedItem.id}_${Date.now()}.jpg`);
+            const uploadResult = await uploadString(storageRef, capturedImage, 'data_url');
+            const downloadURL = await getDownloadURL(uploadResult.ref);
+            updates.imageUrl = downloadURL;
+            setIsUploading(false);
+        }
+        
+        await setDocumentNonBlocking(itemRef, updates, { merge: true });
+
+        toast({
+            title: 'Success!',
+            description: `"${scannedItem.name}" has been updated.`,
+        });
+
+        // Optimistically update local state
+        setScannedItem(prev => prev ? {...prev, ...updates} : null);
+        handleCloseDialog();
+
+    } catch (error) {
+        console.error("Error saving item:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Could not save the item. Please try again.",
+        });
+    } finally {
+        setIsSaving(false);
+        setIsUploading(false);
+    }
+  };
+
+  const handleCaptureImage = () => {
+    if (videoRef.current && canvasRef.current) {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const context = canvas.getContext('2d');
+        if (context) {
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            setCapturedImage(dataUrl);
+            setIsCaptureMode(false);
+        }
+    }
   };
 
   // Effect for camera permission and setup
@@ -182,12 +258,13 @@ export default function ScanPage() {
     let scanInterval: NodeJS.Timeout | null = null;
     
     if (isScanning && hasCameraPermission && window.BarcodeDetector) {
+      const barcodeDetector = new window.BarcodeDetector({
+        formats: ['ean_13', 'ean_8', 'qr_code', 'code_128', 'code_39', 'upc_a', 'upc_e'],
+      });
+
       scanInterval = setInterval(async () => {
-        if (videoRef.current && videoRef.current.readyState === 4) {
+        if (videoRef.current && videoRef.current.readyState === 4 && !isCaptureMode) {
           try {
-            const barcodeDetector = new window.BarcodeDetector({
-              formats: ['ean_13', 'ean_8', 'qr_code', 'code_128', 'code_39', 'upc_a', 'upc_e'],
-            });
             const barcodes = await barcodeDetector.detect(videoRef.current);
 
             if (barcodes.length > 0) {
@@ -206,7 +283,7 @@ export default function ScanPage() {
         clearInterval(scanInterval);
       }
     };
-  }, [isScanning, hasCameraPermission, handleBarcodeScanned]);
+  }, [isScanning, hasCameraPermission, handleBarcodeScanned, isCaptureMode]);
 
 
   return (
@@ -224,6 +301,8 @@ export default function ScanPage() {
         <CardContent>
           <div className="relative aspect-video w-full overflow-hidden rounded-md border bg-muted">
             <video ref={videoRef} className="h-full w-full object-cover" autoPlay playsInline muted />
+            <canvas ref={canvasRef} className="hidden"></canvas>
+
             {isFindingItem && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -254,7 +333,7 @@ export default function ScanPage() {
         </CardContent>
       </Card>
       
-      <Dialog open={!!scannedItem} onOpenChange={(open) => !open && handleCloseDialog()}>
+      <Dialog open={!!scannedItem && !isEditing} onOpenChange={(open) => !open && handleCloseDialog()}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{scannedItem?.name}</DialogTitle>
@@ -264,6 +343,11 @@ export default function ScanPage() {
           </DialogHeader>
           {scannedItem && (
              <div>
+                {scannedItem.imageUrl && (
+                    <div className='relative w-full aspect-video rounded-md overflow-hidden mb-4 border'>
+                        <Image src={scannedItem.imageUrl} alt={scannedItem.name} layout="fill" objectFit="cover" />
+                    </div>
+                )}
                 <Table>
                     <TableBody>
                         <TableRow>
@@ -283,7 +367,7 @@ export default function ScanPage() {
                             <TableCell>{scannedItem.partNumber || 'N/A'}</TableCell>
                         </TableRow>
                         <TableRow>
-                            <TableCell className="font-semibold">Description</TableCell>
+                            <TableCell className="font-semibold align-top">Description</TableCell>
                             <TableCell>
                                 {scannedItem.description || 'No description provided.'}
                             </TableCell>
@@ -313,11 +397,71 @@ export default function ScanPage() {
                 </div>
              </div>
           )}
-          <DialogFooter>
+          <DialogFooter className='sm:justify-between'>
+            <Button variant="outline" onClick={() => setIsEditing(true)}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+            </Button>
             <Button onClick={handleCloseDialog}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={isEditing} onOpenChange={(open) => !open && setIsEditing(false)}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Edit {scannedItem?.name}</DialogTitle>
+                <DialogDescription>Update the item's details below.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+                <div>
+                    <label htmlFor="quantity" className="block text-sm font-medium text-muted-foreground mb-1">Quantity</label>
+                    <Input id="quantity" type="number" value={editingQuantity} onChange={e => setEditingQuantity(parseInt(e.target.value, 10))} />
+                </div>
+                 <div>
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">Component Image</label>
+                    <div className="relative p-2 border rounded-md min-h-[100px] flex items-center justify-center">
+                        {capturedImage ? (
+                             <div className="relative w-full">
+                                <Image src={capturedImage} alt="Captured component" width={200} height={150} className="rounded-md mx-auto" />
+                                <Button variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6" onClick={() => setCapturedImage(null)}>
+                                    <X className="h-4 w-4" />
+                                </Button>
+                             </div>
+                        ) : (
+                            <Button variant="outline" onClick={() => setIsCaptureMode(true)} disabled={isSaving}>
+                                <ImagePlus className="mr-2 h-4 w-4" />
+                                Add Image
+                            </Button>
+                        )}
+                    </div>
+                </div>
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>Cancel</Button>
+                <Button onClick={handleSave} disabled={isSaving}>
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Save Changes'}
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+       <Dialog open={isCaptureMode} onOpenChange={setIsCaptureMode}>
+            <DialogContent className="max-w-3xl">
+                <DialogHeader>
+                    <DialogTitle>Capture Component Image</DialogTitle>
+                </DialogHeader>
+                <div className="relative aspect-video w-full overflow-hidden rounded-md border bg-muted">
+                    <video ref={videoRef} className="h-full w-full object-cover" autoPlay playsInline muted />
+                </div>
+                <DialogFooter>
+                    <Button onClick={handleCaptureImage}>
+                        <Camera className="mr-2 h-4 w-4" />
+                        Capture
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+       </Dialog>
     </>
   );
 }

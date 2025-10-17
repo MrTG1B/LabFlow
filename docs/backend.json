@@ -66,6 +66,11 @@
         "barcode": {
           "type": "string",
           "description": "A unique barcode identifier for the inventory item."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL of an image of the component.",
+          "format": "uri"
         }
       },
       "required": ["id", "name", "quantity", "unit", "type", "barcode"]
