@@ -91,8 +91,10 @@ export default function ScanPage() {
       stopStream(captureVideoRef);
     }, []);
   
-  const startCameraStream = useCallback(async (captureMode: boolean) => {
+  const startCameraStream = useCallback(async (videoElement: HTMLVideoElement | null) => {
     stopCameraStream(); // Ensure any existing stream is stopped
+    if (!videoElement) return;
+
     try {
         const constraints: MediaStreamConstraints = {
             video: { 
@@ -102,18 +104,9 @@ export default function ScanPage() {
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         setHasCameraPermission(true);
 
-        const videoElement = captureMode ? captureVideoRef.current : videoRef.current;
-
-        if (videoElement) {
-            videoElement.srcObject = stream;
-            videoElement.play();
-        }
-
-        if(!captureMode){
-            setIsScanning(true);
-        } else {
-            setIsScanning(false);
-        }
+        videoElement.srcObject = stream;
+        await videoElement.play();
+        return stream;
     } catch (error) {
         console.error('Error accessing camera:', error);
         setHasCameraPermission(false);
@@ -122,6 +115,7 @@ export default function ScanPage() {
             title: 'Camera Access Denied',
             description: 'Please enable camera permissions in your browser settings to use this feature.',
         });
+        return null;
     }
   }, [toast, stopCameraStream]);
 
@@ -260,50 +254,39 @@ export default function ScanPage() {
   };
 
   const handleCloseCaptureDialog = () => {
-    stopCameraStream();
     setIsCaptureMode(false);
   }
 
-  // Effect for camera permission and setup
+  // Centralized effect for camera management
   useEffect(() => {
-    const getCameraPermission = async () => {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setHasCameraPermission(false);
-        toast({
-          variant: 'destructive',
-          title: 'Unsupported Browser',
-          description: 'Your browser does not support camera access.',
-        });
-        return;
-      }
-      
-      if (!window.BarcodeDetector) {
-          toast({
-              variant: 'destructive',
-              title: 'Unsupported Browser',
-              description: 'Barcode detection is not supported in your browser.',
-          });
+    let stream: MediaStream | null = null;
+    let cancelled = false;
+
+    const manageCamera = async () => {
+      stopCameraStream(); // Stop any active streams
+      if (cancelled) return;
+
+      if (isCaptureMode) {
+        await startCameraStream(captureVideoRef.current);
+        setIsScanning(false);
+      } else if (!scannedItem) {
+        stream = await startCameraStream(videoRef.current);
+        if(stream && !cancelled) {
+          setIsScanning(true);
+        }
+      } else {
+        setIsScanning(false);
       }
     };
 
-    getCameraPermission();
+    manageCamera();
 
     return () => {
+      cancelled = true;
       stopCameraStream();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toast]);
+  }, [isCaptureMode, scannedItem, startCameraStream, stopCameraStream]);
 
-  // Effect to switch camera stream when capture mode changes OR dialogs close
-  useEffect(() => {
-      if (scannedItem === null && !isCaptureMode) {
-        startCameraStream(false);
-      } else if (isCaptureMode) {
-        startCameraStream(true);
-      } else {
-        stopCameraStream();
-      }
-  }, [isCaptureMode, startCameraStream, scannedItem, stopCameraStream]);
 
   // Effect for barcode detection interval, controlled by isScanning state
   useEffect(() => {
@@ -336,6 +319,28 @@ export default function ScanPage() {
       }
     };
   }, [isScanning, hasCameraPermission, handleBarcodeScanned]);
+
+  // Effect to check for initial browser support
+  useEffect(() => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setHasCameraPermission(false);
+        toast({
+          variant: 'destructive',
+          title: 'Unsupported Browser',
+          description: 'Your browser does not support camera access.',
+        });
+        return;
+    }
+      
+    if (!window.BarcodeDetector) {
+        toast({
+            variant: 'destructive',
+            title: 'Unsupported Browser',
+            description: 'Barcode detection is not supported in your browser.',
+        });
+    }
+  }, [toast]);
+
 
   const renderDetailRow = (label: string, value: string | number | undefined | null) => (
     <div className="flex justify-between border-b py-3 text-sm">
@@ -512,3 +517,4 @@ export default function ScanPage() {
     </>
   );
 }
+
