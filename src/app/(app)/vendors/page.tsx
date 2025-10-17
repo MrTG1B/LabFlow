@@ -41,6 +41,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { formatDistanceToNow } from 'date-fns';
 
 const typeColorMap: Record<VendorType, string> = {
     'Online': 'bg-green-500/20 text-green-500 border-green-500/50',
@@ -92,6 +93,7 @@ export default function VendorsPage() {
               <TableRow>
                 <TableHead>Vendor Name</TableHead>
                 <TableHead>Type</TableHead>
+                <TableHead>Last Updated</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -101,13 +103,14 @@ export default function VendorsPage() {
                   <TableRow key={i}>
                     <TableCell><Skeleton className="h-5 w-48" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-36" /></TableCell>
                     <TableCell><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                   </TableRow>
                 ))
               )}
               {!isDataLoading && vendors?.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center">
+                  <TableCell colSpan={4} className="text-center">
                     No vendors found. Add one to get started.
                   </TableCell>
                 </TableRow>
@@ -120,6 +123,14 @@ export default function VendorsPage() {
                        <Badge variant={'outline'} className={cn(typeColorMap[vendor.type])}>
                          {vendor.type}
                        </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {vendor.updatedAt && (
+                      <div className="text-xs text-muted-foreground">
+                        <p>{formatDistanceToNow(new Date(vendor.updatedAt), { addSuffix: true })}</p>
+                        <p>by {vendor.updatedBy?.displayName}</p>
+                      </div>
                     )}
                   </TableCell>
                   <TableCell className="text-right">

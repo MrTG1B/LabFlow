@@ -13,20 +13,32 @@ import {
 import { doc, setDoc, getDoc, Firestore } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import type { User as AppUser } from '@/lib/types';
 
 
 export function initiateAnonymousSignIn(authInstance: Auth): void {
   signInAnonymously(authInstance);
 }
 
+type SignUpData = Omit<AppUser, 'uid' | 'createdAt' | 'displayName' | 'email'> & {
+    email: string;
+    password?: string;
+};
 
-export async function initiateEmailSignUp(authInstance: Auth, firestore: Firestore, email: string, password: string): Promise<UserCredential> {
-  const userCredential = await createUserWithEmailAndPassword(authInstance, email, password);
+
+export async function initiateEmailSignUp(authInstance: Auth, firestore: Firestore, data: SignUpData): Promise<UserCredential> {
+  const userCredential = await createUserWithEmailAndPassword(authInstance, data.email, data.password!);
   const user = userCredential.user;
   const userRef = doc(firestore, 'users', user.uid);
-  const newUser = {
+  
+  const newUser: AppUser = {
       uid: user.uid,
       email: user.email,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      phone: data.phone,
+      post: data.post,
+      displayName: `${data.firstName} ${data.lastName}`,
       createdAt: new Date().toISOString(),
   };
   
@@ -66,9 +78,18 @@ export function handleGoogleRedirectResult(authInstance: Auth, firestore: Firest
         const docSnap = await getDoc(userRef);
 
         if (!docSnap.exists()) {
-          const newUser = {
+          const displayName = user.displayName || '';
+          const nameParts = displayName.split(' ');
+          const firstName = nameParts[0] || '';
+          const lastName = nameParts.slice(1).join(' ') || '';
+
+          const newUser: AppUser = {
             uid: user.uid,
             email: user.email,
+            firstName,
+            lastName,
+            displayName,
+            phone: user.phoneNumber || '', // Often null from Google
             createdAt: new Date().toISOString(),
           };
           setDoc(userRef, newUser)

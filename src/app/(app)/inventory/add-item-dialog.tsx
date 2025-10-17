@@ -33,7 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
@@ -63,6 +63,7 @@ export function AddItemDialog() {
   const [lastAddedItem, setLastAddedItem] = useState<{name: string, barcode: string} | null>(null);
 
   const firestore = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
   const printComponentRef = useRef(null);
 
@@ -107,18 +108,30 @@ export function AddItemDialog() {
   };
 
   async function onSubmit(values: FormValues) {
-    if (!firestore) return;
+    if (!firestore || !user) return;
     setIsSubmitting(true);
 
     try {
       const inventoryCol = collection(firestore, 'inventory');
       const barcode = values.barcode || uuidv4();
+      const now = new Date().toISOString();
+      
       const newItem: Omit<InventoryItem, 'id'> = {
         ...values,
         vendorId: values.vendorId === 'None' ? undefined : values.vendorId,
         barcode: barcode,
-        createdAt: new Date().toISOString(),
+        createdAt: now,
+        updatedAt: now,
+        updatedBy: { uid: user.uid, displayName: user.displayName || user.email! },
       };
+      
+      if (values.rate === undefined || isNaN(values.rate)) {
+        delete (newItem as Partial<InventoryItem>).rate;
+      }
+      if (values.vendorId === 'None') {
+        delete (newItem as Partial<InventoryItem>).vendorId;
+      }
+
       await addDocumentNonBlocking(inventoryCol, newItem);
 
       toast({

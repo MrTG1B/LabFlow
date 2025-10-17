@@ -32,7 +32,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
@@ -57,6 +57,7 @@ interface EditVendorDialogProps {
 export function EditVendorDialog({ vendor, open, onOpenChange }: EditVendorDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const firestore = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
 
   const form = useForm<FormValues>({
@@ -70,17 +71,16 @@ export function EditVendorDialog({ vendor, open, onOpenChange }: EditVendorDialo
 
 
   async function onSubmit(values: FormValues) {
-    if (!firestore) return;
+    if (!firestore || !user) return;
     setIsSubmitting(true);
 
     try {
       const vendorRef = doc(firestore, 'vendors', vendor.id);
+      const now = new Date().toISOString();
       const updatedVendor: Partial<Vendor> = {
-        name: values.name,
-        type: values.type,
-        website: values.website,
-        phone: values.phone,
-        address: values.address,
+        ...values,
+        updatedAt: now,
+        updatedBy: { uid: user.uid, displayName: user.displayName || user.email! },
       };
       
       await setDocumentNonBlocking(vendorRef, updatedVendor, { merge: true });

@@ -16,13 +16,33 @@
           "description": "The user's email address.",
           "format": "email"
         },
+        "firstName": {
+            "type": "string",
+            "description": "The user's first name."
+        },
+        "lastName": {
+            "type": "string",
+            "description": "The user's last name."
+        },
+        "phone": {
+            "type": "string",
+            "description": "The user's phone number."
+        },
+        "post": {
+            "type": "string",
+            "description": "The user's job title or post."
+        },
+        "displayName": {
+            "type": "string",
+            "description": "The user's full display name."
+        },
         "createdAt": {
           "type": "string",
           "description": "The date the user account was created.",
           "format": "date-time"
         }
       },
-      "required": ["uid", "email", "createdAt"]
+      "required": ["uid", "email", "createdAt", "firstName", "lastName", "phone"]
     },
     "InventoryItem": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -84,6 +104,15 @@
           "type": "string",
           "format": "date-time",
           "description": "Timestamp when the item was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the item was last updated."
+        },
+        "updatedBy": {
+          "$ref": "#/backend/entities/User",
+          "description": "The user who last updated the item."
         }
       },
       "required": ["id", "name", "type", "value"]
@@ -119,6 +148,15 @@
         "address": {
           "type": "string",
           "description": "The physical address of the vendor."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the vendor was last updated."
+        },
+        "updatedBy": {
+          "$ref": "#/backend/entities/User",
+          "description": "The user who last updated the vendor."
         }
       },
       "required": ["id", "name"]

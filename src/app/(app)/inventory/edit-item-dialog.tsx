@@ -31,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError, useUser } from '@/firebase';
 import { doc, collection, query, orderBy } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
@@ -49,7 +49,6 @@ const formSchema = z.object({
   barcode: z.string().optional(),
   vendorId: z.string().optional(),
   rate: z.coerce.number().optional(),
-  createdAt: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -63,6 +62,7 @@ interface EditItemDialogProps {
 export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const firestore = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
 
   const vendorsQuery = useMemoFirebase(() => {
@@ -88,7 +88,7 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
 
 
   async function onSubmit(values: FormValues) {
-    if (!firestore) return;
+    if (!firestore || !user) return;
     setIsSubmitting(true);
 
     try {
@@ -96,6 +96,8 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
       
       const updatedItem: Partial<InventoryItem> = {
         ...values,
+        updatedAt: new Date().toISOString(),
+        updatedBy: { uid: user.uid, displayName: user.displayName || user.email! },
       };
 
       // Handle optional vendorId
@@ -275,7 +277,7 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
                             <FormItem>
                             <FormLabel>Rate (per unit, Optional)</FormLabel>
                             <FormControl>
-                                <Input type="number" placeholder="0.00" {...field} />
+                                <Input type="number" placeholder="0.00" {...field} value={field.value ?? ''} onChange={field.onChange} />
                             </FormControl>
                             <FormMessage />
                             </FormItem>

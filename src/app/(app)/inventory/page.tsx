@@ -29,6 +29,7 @@ import { ItemDetailsDialog } from './item-details-dialog';
 import { EditItemDialog } from './edit-item-dialog';
 import { Button } from '@/components/ui/button';
 import { View, Edit } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 
 const typeColorMap: Record<InventoryItemType, string> = {
     'Capacitor': 'bg-blue-500/20 text-blue-500 border-blue-500/50',
@@ -75,20 +76,20 @@ export default function InventoryPage() {
                 <TableHead>Type</TableHead>
                 <TableHead>Quantity</TableHead>
                 <TableHead>Value</TableHead>
-                <TableHead>Barcode</TableHead>
+                <TableHead>Last Updated</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isDataLoading && (
-                Array.from({ length: 3 }).map((_, i) => (
+                Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
                     <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-36" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                   </TableRow>
                 ))
               )}
@@ -107,11 +108,18 @@ export default function InventoryPage() {
                       {item.type}
                     </Badge>
                   </TableCell>
-                  <TableCell className={cn(item.quantity < 10 ? "text-red-500" : "")}>
+                  <TableCell className={cn(item.quantity !== undefined && item.quantity < 10 ? "text-red-500" : "")}>
                     {item.quantity} {item.unit}
                   </TableCell>
                   <TableCell>{item.value}</TableCell>
-                  <TableCell className="font-mono text-xs">{item.barcode}</TableCell>
+                  <TableCell>
+                    {item.updatedAt && (
+                      <div className="text-xs text-muted-foreground">
+                        <p>{formatDistanceToNow(new Date(item.updatedAt), { addSuffix: true })}</p>
+                        <p>by {item.updatedBy?.displayName}</p>
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-2 justify-end">
                       <Button variant="ghost" size="icon" onClick={() => setViewingItem(item)}>

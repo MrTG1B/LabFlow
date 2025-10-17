@@ -33,11 +33,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { PlusCircle, Loader2 } from 'lucide-react';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
-import { Vendor, vendorTypes, VendorType } from '@/lib/types';
+import { Vendor, vendorTypes } from '@/lib/types';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -54,6 +54,7 @@ export function AddVendorDialog() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const firestore = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
 
   const form = useForm<FormValues>({
@@ -67,13 +68,16 @@ export function AddVendorDialog() {
   });
 
   async function onSubmit(values: FormValues) {
-    if (!firestore) return;
+    if (!firestore || !user) return;
     setIsSubmitting(true);
 
     try {
       const vendorsCol = collection(firestore, 'vendors');
+      const now = new Date().toISOString();
       const newVendor: Omit<Vendor, 'id'> = {
         ...values,
+        updatedAt: now,
+        updatedBy: { uid: user.uid, displayName: user.displayName || user.email! },
       };
       await addDocumentNonBlocking(vendorsCol, newVendor);
 

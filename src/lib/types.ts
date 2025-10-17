@@ -27,6 +27,8 @@ export type InventoryItem = {
   vendorId?: string;
   rate?: number;
   createdAt?: string;
+  updatedAt?: string;
+  updatedBy?: User | { uid: string, displayName: string };
 };
 
 export const vendorTypes = ["Online", "Offline"] as const;
@@ -39,6 +41,8 @@ export type Vendor = {
   website?: string;
   phone?: string;
   address?: string;
+  updatedAt?: string;
+  updatedBy?: User | { uid: string, displayName: string };
 };
 
 export type Equipment = {
@@ -64,4 +68,15 @@ export type RecentActivity = {
     user: string;
     date: string;
     status: 'Completed' | 'In Progress';
+}
+
+export type User = {
+    uid: string;
+    email: string | null;
+    firstName: string;
+    lastName: string;
+    phone: string;
+    post?: string;
+    displayName: string;
+    createdAt: string;
 }

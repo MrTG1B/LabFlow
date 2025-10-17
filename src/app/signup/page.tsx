@@ -24,6 +24,10 @@ import { useAuth, useUser, useFirestore, initiateEmailSignUp, initiateGoogleSign
 import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
+  firstName: z.string().min(1, { message: "First name is required." }),
+  lastName: z.string().min(1, { message: "Last name is required." }),
+  phone: z.string().min(10, { message: "Please enter a valid phone number." }),
+  post: z.string().optional(),
   email: z.string().email({ message: "Please enter a valid email." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
 });
@@ -41,6 +45,10 @@ export default function SignupPage() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      firstName: "",
+      lastName: "",
+      phone: "",
+      post: "",
       email: "",
       password: "",
     },
@@ -79,7 +87,7 @@ export default function SignupPage() {
     setAuthError(null);
     if (!auth || !firestore) return;
     try {
-      await initiateEmailSignUp(auth, firestore, values.email, values.password);
+      await initiateEmailSignUp(auth, firestore, values);
     } catch (error: any) {
         setIsSubmitting(false);
         if (error.code === 'auth/email-already-in-use') {
@@ -102,7 +110,7 @@ export default function SignupPage() {
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
       <div className="flex items-center justify-center py-12">
-        <div className="mx-auto grid w-[350px] gap-6">
+        <div className="mx-auto grid w-[400px] gap-6">
           <div className="grid gap-2 text-center">
             <div className="flex items-center justify-center gap-2 mb-4">
               <CircuitBoard className="h-8 w-8 text-primary" />
@@ -110,11 +118,39 @@ export default function SignupPage() {
             </div>
             <h2 className="text-2xl font-bold">Create an account</h2>
             <p className="text-balance text-muted-foreground">
-              Enter your email below to create your account
+              Enter your details below to create your account
             </p>
           </div>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+               <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="firstName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>First Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="John" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="lastName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Last Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Doe" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               <FormField
                 control={form.control}
                 name="email"
@@ -128,6 +164,32 @@ export default function SignupPage() {
                   </FormItem>
                 )}
               />
+                <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Phone Number</FormLabel>
+                        <FormControl>
+                            <Input placeholder="123-456-7890" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="post"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Post (Optional)</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g. Lab Technician" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
               <FormField
                 control={form.control}
                 name="password"
