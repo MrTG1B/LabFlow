@@ -27,7 +27,6 @@ import { collection, query, where, getDocs, limit, doc } from 'firebase/firestor
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { InventoryItem, Vendor } from '@/lib/types';
 import Barcode from 'react-barcode';
-import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { enhanceDescription } from './actions';
 import { Input } from '@/components/ui/input';
 import { uploadImage } from './upload-image-action';
@@ -90,7 +89,12 @@ export default function ScanPage() {
   const startCameraStream = useCallback(async (captureMode: boolean) => {
     stopCameraStream(); // Ensure any existing stream is stopped
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        const constraints: MediaStreamConstraints = {
+            video: { 
+                facingMode: 'environment'
+            }
+        };
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
         setHasCameraPermission(true);
         if (videoRef.current) {
             videoRef.current.srcObject = stream;
@@ -179,7 +183,6 @@ export default function ScanPage() {
     setIsEnhancing(false);
     setIsEditing(false);
     setCapturedImage(null);
-    startCameraStream(false);
   };
 
   const handleSave = async () => {
@@ -275,8 +278,10 @@ export default function ScanPage() {
 
   // Effect to switch camera stream when capture mode changes
   useEffect(() => {
-      startCameraStream(isCaptureMode);
-  }, [isCaptureMode, startCameraStream]);
+      if (scannedItem === null) {
+        startCameraStream(isCaptureMode);
+      }
+  }, [isCaptureMode, startCameraStream, scannedItem]);
 
   // Effect for barcode detection interval, controlled by isScanning state
   useEffect(() => {
@@ -483,3 +488,5 @@ export default function ScanPage() {
     </>
   );
 }
+
+    
