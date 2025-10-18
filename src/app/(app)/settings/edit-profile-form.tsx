@@ -55,6 +55,8 @@ export function EditProfileForm() {
       lastName: '',
       phone: '',
       post: '',
+      salutation: undefined,
+      gender: undefined,
     },
   });
 
