@@ -48,22 +48,16 @@ export default function AppLayout({
   
   // If there is no user and we are still in the loading process, we don't want to show anything.
   // The useEffect will handle the redirect.
-  if (!user && isUserLoading) {
+  if (isUserLoading || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
   }
-
-  // If there's no user and loading is finished, the redirect has been triggered.
-  // Render null to avoid a flash of the layout.
-  if (!user) {
-    return null;
-  }
   
   // If we have a user, render the full app layout.
-  // We handle the content loading state inside the main element.
+  // We handle the content loading state inside the page itself.
   return (
     <SidebarProvider>
       <Sidebar>
@@ -73,13 +67,7 @@ export default function AppLayout({
         <div className="flex flex-col min-h-screen">
           <Header />
           <main className="flex-1 p-4 md:p-8 lg:p-10 bg-background/95">
-            {isUserLoading ? (
-              <div className="flex items-center justify-center h-full">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : (
-              children
-            )}
+            {children}
           </main>
           <Toaster />
         </div>
