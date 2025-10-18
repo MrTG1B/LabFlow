@@ -106,13 +106,22 @@ export default function LoginPage() {
     initiateGoogleSignIn(auth);
   }
   
-  if (isUserLoading || isProcessingRedirect || user) {
+  // While we check for auth state or if a user already exists, show a loader.
+  // The layout will handle the redirect for an authenticated user.
+  if (isUserLoading || isProcessingRedirect) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
   }
+  
+  // If a user is found, AppLayout will redirect, so we can render nothing here
+  // to avoid a flash of the login page.
+  if (user) {
+    return null;
+  }
+
 
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">

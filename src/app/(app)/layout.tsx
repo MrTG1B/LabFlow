@@ -46,8 +46,9 @@ export default function AppLayout({
     }
   }, [user, isUserLoading, router, isMobile, pathname]);
   
-  // If there is no user and we are still in the loading process, we don't want to show anything.
-  // The useEffect will handle the redirect.
+  // If we are still determining the user's auth state, or if there is no user,
+  // show a full-screen loader. The useEffect above will handle the redirect
+  // for a non-existent user.
   if (isUserLoading || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
