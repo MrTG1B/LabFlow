@@ -1,100 +1,141 @@
 /**
- * @fileoverview Firestore Security Rules for Prototyping.
+ * @fileoverview Firestore Security Rules for the lab inventory application.
  *
  * Core Philosophy:
- * This ruleset prioritizes secure authorization while relaxing data validation to
- * enable rapid prototyping. It enforces user-ownership and prevents unauthorized
- * data access, but does not strictly enforce data shapes.
+ * This ruleset prioritizes secure data access based on a combination of
+ * ownership and public read permissions. It enforces strict control over
+ * write operations, ensuring that only authenticated users can create, update,
+ * or delete data, with appropriate ownership checks. Data shape validation is relaxed for prototyping.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profile data. Access is restricted to the owning user.
- * - /inventory/{inventoryItemId}: Stores inventory item data. Currently, access is public.
- * - /vendors/{vendorId}: Stores vendor data. Currently, access is public.
- * - /inventoryItemTypes/{typeId}: Stores user-defined inventory item types. Currently, access is public.
+ * - /users/{userId}: Stores user profile data, accessible only to the
+ *   authenticated user with the matching ID.
+ * - /inventory/{inventoryItemId}: Stores inventory items. Publicly readable,
+ *   but write access is restricted to authenticated users, and requires that
+ *   they set valid ownership.
+ * - /vendors/{vendorId}: Stores vendor information, with similar public read
+ *   and owner-restricted write permissions.
+ * - /inventoryItemTypes/{typeId}: Stores user-defined inventory item types, with similar public read
+ *   and owner-restricted write permissions.
  *
  * Key Security Decisions:
  * - User listing is disallowed.
- * - Public read access is granted for the /inventory, /vendors, and /inventoryItemTypes collections to facilitate easy data exploration.
- * - Owner-only write access is enforced for user profiles.
- *
- * Denormalization for Authorization:
- *  Not applicable in this simple ruleset. Complex authorization schemes (e.g.,
- *  shared access, roles) would benefit from denormalizing access control data
- *  directly onto the documents being secured.
- *
- * Structural Segregation:
- * Not applicable in this simple ruleset. Separating public and private data into
- * distinct collections would improve security and performance for list operations
- * in more complex applications.
+ * - Public read access is granted to the /inventory, /vendors, and /inventoryItemTypes collections to enable wide data sharing,
+ *   but write access is strictly controlled using an ownership-based model.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Manages user profile data. Only the owning user can read or write their profile.
+     * @description Secure user profile data.
      * @path /users/{userId}
-     * @allow (create) - User with UID 'user123' can create their profile at /users/user123 if request.auth.uid == 'user123'.
-     * @allow (get, update, delete) - User with UID 'user123' can get, update, and delete their profile at /users/user123.
-     * @deny (create) - User with UID 'user456' cannot create a profile at /users/user123.
-     * @deny (get, update, delete) - User with UID 'user456' cannot get, update, or delete the profile at /users/user123.
-     * @principle Enforces document ownership for all operations on user profiles.
+     * @allow (create) - Authenticated user can create their own profile.
+     * @allow (get, update, delete) - Authenticated user can access their own profile.
+     * @deny (create) - An unauthenticated user cannot create a profile.
+     * @deny (get, update, delete) - An unauthenticated user cannot access a user profile.
+     * @deny (create) - A user cannot create a profile for another user.
+     * @deny (get, update, delete) - A user cannot access another user's profile.
+     * @principle Enforces user-ownership for user profile data.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId);
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      function isExistingOwner() {
+          return request.auth.uid == resource.data.ownerId;
+      }
+
+      allow get: if isSignedIn() && isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId) && request.resource.data.uid == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.uid == resource.data.uid;
-      allow delete: if isExistingOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isExistingOwner();
+      allow delete: if isSignedIn() && isExistingOwner();
     }
 
     /**
-     * @description Manages inventory item data. All users can read, but writes are not secured, because ownership is not defined.
+     * @description Secure inventory items.
      * @path /inventory/{inventoryItemId}
-     * @allow (get, list) - Any user can read inventory items.
-     * @deny (create, update, delete) - Writes are not currently secured due to missing owner field.
-     * @principle Allows public read access, but REQUIRES owner-based access control for writes.
+     * @allow (get, list) - Anyone can read inventory items.
+     * @allow (create) - Authenticated user can create an item and must set ownerId to their uid.
+     * @allow (update, delete) - Only the owner of the item can update or delete it.
+     * @deny (create) - An unauthenticated user cannot create an item.
+     * @deny (create) - A user cannot create an item with an ownerId that does not match their own uid.
+     * @deny (update, delete) - A user cannot update or delete an item they don't own.
+     * @principle Public read, owner-only writes with ownership validation on create, update, and delete.
      */
     match /inventory/{inventoryItemId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      function isOwner() {
+        return request.auth.uid == resource.data.ownerId;
+      }
+      function isCreatingOwner() {
+          return request.auth.uid == request.resource.data.ownerId;
+      }
+
       allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow create: if isSignedIn() && isCreatingOwner();
+      allow update: if isSignedIn() && isOwner();
+      allow delete: if isSignedIn() && isOwner();
     }
 
     /**
-     * @description Manages vendor data. All users can read, but writes are not secured, because ownership is not defined.
+     * @description Secure vendors.
      * @path /vendors/{vendorId}
-     * @allow (get, list) - Any user can read vendor data.
-     * @deny (create, update, delete) - Writes are not currently secured due to missing owner field.
-     * @principle Allows public read access, but REQUIRES owner-based access control for writes.
+     * @allow (get, list) - Anyone can read vendor data.
+     * @allow (create) - Authenticated user can create a vendor, id matches.
+     * @allow (update, delete) - Only the owner of the vendor can update or delete it.
+     * @deny (create) - An unauthenticated user cannot create a vendor.
+     * @deny (update, delete) - A user cannot update or delete a vendor they don't own.
+     * @principle Public read, owner-only writes with ownership validation on create, update, and delete.
      */
     match /vendors/{vendorId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;  // TODO: Add owner validation once the schema is updated with an ownership field.
+        function isSignedIn() {
+          return request.auth != null;
+        }
+        function isOwner() {
+          return request.auth.uid == resource.data.ownerId;
+        }
+        function isCreatingOwner() {
+            return request.auth.uid == request.resource.data.ownerId;
+        }
+
+        allow get, list: if true;
+        allow create: if isSignedIn() && isCreatingOwner();
+        allow update: if isSignedIn() && isOwner();
+        allow delete: if isSignedIn() && isOwner();
     }
 
         /**
-         * @description Manages inventory item types. All users can read, but writes are not secured, because ownership is not defined.
+         * @description Secure inventory item types.
          * @path /inventoryItemTypes/{typeId}
-         * @allow (get, list) - Any user can read inventory item types.
-         * @deny (create, update, delete) - Writes are not currently secured due to missing owner field.
-         * @principle Allows public read access, but REQUIRES owner-based access control for writes.
+         * @allow (get, list) - Anyone can read inventory item types.
+         * @allow (create) - Authenticated user can create an item type, id must match.
+         * @allow (update, delete) - Only the owner of the item type can update or delete it.
+         * @deny (create) - An unauthenticated user cannot create an item type.
+         * @deny (update, delete) - A user cannot update or delete an item type they don't own.
+         * @principle Public read, owner-only writes with ownership validation on create, update, and delete.
          */
         match /inventoryItemTypes/{typeId} {
-          allow get, list: if true;
-          allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+            function isSignedIn() {
+              return request.auth != null;
+            }
+            function isOwner() {
+              return request.auth.uid == resource.data.ownerId;
+            }
+           function isCreatingOwner() {
+                return request.auth.uid == request.resource.data.ownerId;
+            }
+
+            allow get, list: if true;
+            allow create: if isSignedIn() && isCreatingOwner();
+            allow update: if isSignedIn() && isOwner();
+            allow delete: if isSignedIn() && isOwner();
         }
-
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-    }
   }
 }
