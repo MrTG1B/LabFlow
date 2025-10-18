@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo, useState, useRef } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -36,7 +36,7 @@ import { Badge } from "@/components/ui/badge"
 import { IndianRupee, Boxes, Users, Package, Printer } from "lucide-react"
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, limit } from "firebase/firestore";
-import type { InventoryItem, InventoryItemType } from "@/lib/types";
+import type { InventoryItem, InventoryItemType, Vendor } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -77,6 +77,64 @@ const chartConfig: ChartConfig = {
   },
 } satisfies ChartConfig
 
+const DashboardSkeleton = () => (
+    <div className="flex flex-col gap-8">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+                 <Card key={i}>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <Skeleton className="h-5 w-32" />
+                        <Skeleton className="h-4 w-4" />
+                    </CardHeader>
+                    <CardContent>
+                        <Skeleton className="h-8 w-24" />
+                        <Skeleton className="h-4 w-40 mt-1" />
+                    </CardContent>
+                </Card>
+            ))}
+        </div>
+        <div className="grid gap-8 md:grid-cols-2">
+             <Card>
+                <CardHeader>
+                    <Skeleton className="h-6 w-48" />
+                    <Skeleton className="h-4 w-56 mt-1" />
+                </CardHeader>
+                <CardContent>
+                    <Skeleton className="h-[200px] w-full" />
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-6 w-48" />
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead><Skeleton className="h-5 w-24" /></TableHead>
+                                <TableHead><Skeleton className="h-5 w-16" /></TableHead>
+                                <TableHead><Skeleton className="h-5 w-20" /></TableHead>
+                                <TableHead className="text-right"><Skeleton className="h-5 w-10 ml-auto" /></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                        {Array.from({ length: 5 }).map((_, i) => (
+                            <TableRow key={i}>
+                                <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                                <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                                <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                                <TableCell><Skeleton className="h-8 w-10 ml-auto" /></TableCell>
+                            </TableRow>
+                        ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+        </div>
+    </div>
+);
+
+
 export default function Dashboard() {
   const firestore = useFirestore();
   const [itemToPrint, setItemToPrint] = useState<InventoryItem | null>(null);
@@ -99,6 +157,8 @@ export default function Dashboard() {
     return query(collection(firestore, 'vendors'));
   }, [firestore]);
   const { data: vendors, isLoading: isLoadingVendors } = useCollection<Vendor>(vendorsQuery);
+  
+  const isDashboardLoading = isLoadingInventory || isLoadingRecent || isLoadingVendors;
 
   const { stats, inventoryChartData } = useMemo(() => {
     if (!inventory) return { stats: { totalValue: 0, lowStockCount: 0 }, inventoryChartData: [] };
@@ -138,6 +198,9 @@ export default function Dashboard() {
     }
   };
 
+  if (isDashboardLoading) {
+    return <DashboardSkeleton />;
+  }
 
   return (
     <>
@@ -151,10 +214,10 @@ export default function Dashboard() {
               <IndianRupee className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              {isLoadingInventory ? <Skeleton className="h-8 w-24" /> : <div className="text-2xl font-bold">₹{stats.totalValue.toFixed(2)}</div>}
-              <p className="text-xs text-muted-foreground">
-                Based on quantity and rate
-              </p>
+                <div className="text-2xl font-bold">₹{stats.totalValue.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground">
+                    Based on quantity and rate
+                </p>
             </CardContent>
           </Card>
           <Card className="transition-all hover:shadow-lg hover:-translate-y-1">
@@ -165,7 +228,7 @@ export default function Dashboard() {
               <Boxes className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              {isLoadingInventory ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold">{stats.lowStockCount}</div>}
+              <div className="text-2xl font-bold">{stats.lowStockCount}</div>
               <p className="text-xs text-muted-foreground">
                 Items with quantity less than 10
               </p>
@@ -179,10 +242,10 @@ export default function Dashboard() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              {isLoadingVendors ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold">{vendors?.length || 0}</div>}
-              <p className="text-xs text-muted-foreground">
-                Number of registered suppliers
-              </p>
+                <div className="text-2xl font-bold">{vendors?.length || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                    Number of registered suppliers
+                </p>
             </CardContent>
           </Card>
         </div>
@@ -198,18 +261,16 @@ export default function Dashboard() {
               </CardDescription>
               </CardHeader>
               <CardContent>
-                  {isLoadingInventory ? <Skeleton className="h-[200px] w-full" /> : 
-                      <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
-                          <PieChart>
-                              <ChartTooltip content={<ChartTooltipContent nameKey="type" />} />
-                              <Pie data={inventoryChartData} dataKey="count" nameKey="type" innerRadius={50} outerRadius={80} paddingAngle={2}>
-                                  {inventoryChartData.map((entry) => (
-                                      <Cell key={`cell-${entry.type}`} fill={entry.fill} />
-                                  ))}
-                              </Pie>
-                          </PieChart>
-                      </ChartContainer>
-                  }
+                <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+                    <PieChart>
+                        <ChartTooltip content={<ChartTooltipContent nameKey="type" />} />
+                        <Pie data={inventoryChartData} dataKey="count" nameKey="type" innerRadius={50} outerRadius={80} paddingAngle={2}>
+                            {inventoryChartData.map((entry) => (
+                                <Cell key={`cell-${entry.type}`} fill={entry.fill} />
+                            ))}
+                        </Pie>
+                    </PieChart>
+                </ChartContainer>
               </CardContent>
           </Card>
 
@@ -231,22 +292,14 @@ export default function Dashboard() {
                   </TableRow>
                   </TableHeader>
                   <TableBody>
-                  {isLoadingRecent && Array.from({ length: 5 }).map((_, i) => (
-                      <TableRow key={i}>
-                      <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                      <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                      <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                      <TableCell><Skeleton className="h-8 w-10 ml-auto" /></TableCell>
-                      </TableRow>
-                  ))}
-                  {!isLoadingRecent && recentItems?.length === 0 && (
+                  {recentItems?.length === 0 && (
                       <TableRow>
                       <TableCell colSpan={4} className="text-center">
                           No items have been added yet.
                       </TableCell>
                       </TableRow>
                   )}
-                  {!isLoadingRecent && recentItems?.map(item => (
+                  {recentItems?.map(item => (
                       <TableRow key={item.id} className="transition-colors hover:bg-muted/50">
                           <TableCell className="font-medium">{item.name}</TableCell>
                           <TableCell>
@@ -299,3 +352,5 @@ export default function Dashboard() {
     </>
   )
 }
+
+    
