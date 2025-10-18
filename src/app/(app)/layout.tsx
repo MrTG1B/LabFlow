@@ -58,7 +58,7 @@ export default function AppLayout({
   }
   
   // If we have a user, render the full app layout.
-  // We handle the content loading state inside the page itself.
+  // The content loading state is now handled inside the page itself.
   return (
     <SidebarProvider>
       <Sidebar>
