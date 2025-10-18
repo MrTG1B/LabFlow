@@ -76,11 +76,8 @@ export default function InventoryPage() {
     if (!color) return {};
     const [h, s, l] = color.split(" ").map(Number);
     return {
-        '--badge-bg': `${h} ${s}% ${l}%`,
-        '--badge-fg': `${h} ${s}% ${l > 50 ? 10 : 90}%`,
-        '--badge-border': `${h} ${s}% ${l}%`,
-        backgroundColor: `hsl(${h} ${s}% ${l}% / 0.1)`,
-        color: `hsl(${h} ${s}% ${l > 50 ? 10 : 90}%)`,
+        backgroundColor: `hsl(${h} ${s}% ${l}% / 0.15)`,
+        color: `hsl(${h} ${s}% ${l + (l > 50 ? -20 : 20)}%)`,
         borderColor: `hsl(${h} ${s}% ${l}% / 0.2)`,
     } as React.CSSProperties;
   };
