@@ -127,8 +127,8 @@ export default function InventoryPage() {
                         <p>{formatDistanceToNow(new Date(item.updatedAt), { addSuffix: true })}</p>
                         <p className="flex items-center gap-1">
                           by {getUpdatedByLabel(item)}
-                          {item.updatedBy?.device === 'Mobile' && <Smartphone className="h-3 w-3" />}
-                          {item.updatedBy?.device === 'Desktop' && <Monitor className="h-3 w-3" />}
+                          {item.updatedBy?.device === 'Mobile' && <Smartphone className="h-3 w-3 text-green-400" />}
+                          {item.updatedBy?.device === 'Desktop' && <Monitor className="h-3 w-3 text-blue-400" />}
                         </p>
                       </div>
                     )}

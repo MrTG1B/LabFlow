@@ -118,8 +118,8 @@ export default function VendorsPage() {
                         <p>{formatDistanceToNow(new Date(vendor.updatedAt), { addSuffix: true })}</p>
                         <p className="flex items-center gap-1">
                           by {getUpdatedByLabel(vendor)}
-                          {vendor.updatedBy?.device === 'Mobile' && <Smartphone className="h-3 w-3" />}
-                          {vendor.updatedBy?.device === 'Desktop' && <Monitor className="h-3 w-3" />}
+                          {vendor.updatedBy?.device === 'Mobile' && <Smartphone className="h-3 w-3 text-green-400" />}
+                          {vendor.updatedBy?.device === 'Desktop' && <Monitor className="h-3 w-3 text-blue-400" />}
                         </p>
                       </div>
                     )}
