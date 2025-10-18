@@ -120,8 +120,6 @@ export default function Dashboard() {
     return { stats: { totalValue, lowStockCount }, inventoryChartData: chartData };
   }, [inventory]);
 
-  const isLoading = isLoadingInventory || isLoadingRecent || isLoadingVendors;
-
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
     if (printWindow && printComponentRef.current) {
@@ -153,7 +151,7 @@ export default function Dashboard() {
               <IndianRupee className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              {isLoading ? <Skeleton className="h-8 w-24" /> : <div className="text-2xl font-bold">₹{stats.totalValue.toFixed(2)}</div>}
+              {isLoadingInventory ? <Skeleton className="h-8 w-24" /> : <div className="text-2xl font-bold">₹{stats.totalValue.toFixed(2)}</div>}
               <p className="text-xs text-muted-foreground">
                 Based on quantity and rate
               </p>
@@ -167,7 +165,7 @@ export default function Dashboard() {
               <Boxes className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold">{stats.lowStockCount}</div>}
+              {isLoadingInventory ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold">{stats.lowStockCount}</div>}
               <p className="text-xs text-muted-foreground">
                 Items with quantity less than 10
               </p>
@@ -181,7 +179,7 @@ export default function Dashboard() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold">{vendors?.length || 0}</div>}
+              {isLoadingVendors ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold">{vendors?.length || 0}</div>}
               <p className="text-xs text-muted-foreground">
                 Number of registered suppliers
               </p>
@@ -200,7 +198,7 @@ export default function Dashboard() {
               </CardDescription>
               </CardHeader>
               <CardContent>
-                  {isLoading ? <Skeleton className="h-[200px] w-full" /> : 
+                  {isLoadingInventory ? <Skeleton className="h-[200px] w-full" /> : 
                       <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
                           <PieChart>
                               <ChartTooltip content={<ChartTooltipContent nameKey="type" />} />
@@ -233,7 +231,7 @@ export default function Dashboard() {
                   </TableRow>
                   </TableHeader>
                   <TableBody>
-                  {isLoading && Array.from({ length: 5 }).map((_, i) => (
+                  {isLoadingRecent && Array.from({ length: 5 }).map((_, i) => (
                       <TableRow key={i}>
                       <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-16" /></TableCell>
@@ -241,14 +239,14 @@ export default function Dashboard() {
                       <TableCell><Skeleton className="h-8 w-10 ml-auto" /></TableCell>
                       </TableRow>
                   ))}
-                  {!isLoading && recentItems?.length === 0 && (
+                  {!isLoadingRecent && recentItems?.length === 0 && (
                       <TableRow>
                       <TableCell colSpan={4} className="text-center">
                           No items have been added yet.
                       </TableCell>
                       </TableRow>
                   )}
-                  {!isLoading && recentItems?.map(item => (
+                  {!isLoadingRecent && recentItems?.map(item => (
                       <TableRow key={item.id} className="transition-colors hover:bg-muted/50">
                           <TableCell className="font-medium">{item.name}</TableCell>
                           <TableCell>
@@ -301,4 +299,3 @@ export default function Dashboard() {
     </>
   )
 }
-
