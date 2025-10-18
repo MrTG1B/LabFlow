@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -32,16 +32,19 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { doc, collection, query, orderBy } from 'firebase/firestore';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { doc, collection, query, orderBy, where, getDocs } from 'firebase/firestore';
+import { setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
-import { InventoryItem, inventoryItemTypes, Vendor } from '@/lib/types';
+import { InventoryItem, Vendor } from '@/lib/types';
 import { Textarea } from '@/components/ui/textarea';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Combobox } from '@/components/ui/combobox';
+import { generateColorFromString } from '@/lib/color-utils';
+
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
-  type: z.enum(inventoryItemTypes, { required_error: 'Please select an item type.' }),
+  type: z.string({ required_error: 'Please select an item type.' }),
   value: z.string().min(1, { message: 'Value is required.' }),
   quantity: z.coerce.number().optional(),
   unit: z.string().optional(),
@@ -73,6 +76,12 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
   }, [firestore]);
   const { data: vendors } = useCollection<Vendor>(vendorsQuery);
 
+  const itemTypesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'inventoryItemTypes'), orderBy('name'));
+  }, [firestore]);
+  const { data: itemTypes, isLoading: isLoadingTypes } = useCollection(itemTypesQuery);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -82,11 +91,36 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
   });
 
   useEffect(() => {
-    form.reset({
-      ...item,
-      vendorId: item.vendorId || 'None',
-    });
+    if (item) {
+      form.reset({
+        ...item,
+        vendorId: item.vendorId || 'None',
+      });
+    }
   }, [item, form]);
+
+  const handleCreateNewType = useCallback(async (typeName: string) => {
+    if (!firestore) return;
+    const normalizedTypeName = typeName.trim();
+    if (normalizedTypeName === '') return;
+
+    // Check if type already exists
+    const typesRef = collection(firestore, 'inventoryItemTypes');
+    const q = query(typesRef, where('name', '==', normalizedTypeName));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      const newType = {
+        name: normalizedTypeName,
+        color: generateColorFromString(normalizedTypeName),
+      };
+      await addDocumentNonBlocking(collection(firestore, 'inventoryItemTypes'), newType);
+      toast({
+        title: 'New Type Created',
+        description: `"${normalizedTypeName}" has been added to inventory types.`,
+      });
+    }
+  }, [firestore, toast]);
 
 
   async function onSubmit(values: FormValues) {
@@ -94,6 +128,8 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
     setIsSubmitting(true);
     
     try {
+        await handleCreateNewType(values.type);
+
         const itemRef = doc(firestore, 'inventory', item.id);
         
         const updatedItemData: Partial<InventoryItem> = {
@@ -137,6 +173,7 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
     }
 }
 
+  const typeOptions = itemTypes?.map(type => ({ value: type.name, label: type.name })) || [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -167,22 +204,18 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
                   control={form.control}
                   name="type"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-col">
                       <FormLabel>Type</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select an item type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {inventoryItemTypes.map((type) => (
-                            <SelectItem key={type} value={type}>
-                              {type}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Combobox
+                          options={typeOptions}
+                          value={field.value}
+                          onChange={field.onChange}
+                          onCreate={handleCreateNewType}
+                          placeholder="Select or create type..."
+                          notFoundMessage="No types found."
+                          createMessage="Create new type:"
+                          isLoading={isLoadingTypes}
+                        />
                       <FormMessage />
                     </FormItem>
                   )}
@@ -245,7 +278,7 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Vendor (Optional)</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value || 'None'}>
+                        <Select onValueChange={field.onChange} value={field.value || 'None'}>
                             <FormControl>
                             <SelectTrigger>
                                 <SelectValue placeholder="Select a vendor" />

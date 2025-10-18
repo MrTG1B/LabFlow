@@ -1,4 +1,5 @@
 
+
 export type Experiment = {
   id: string;
   name: string;
@@ -10,7 +11,11 @@ export type Experiment = {
 
 export const inventoryItemTypes = ["Capacitor", "Resistor", "IC", "Connector", "Misc"] as const;
 
-export type InventoryItemType = typeof inventoryItemTypes[number];
+export type InventoryItemType = {
+  id: string;
+  name: string;
+  color: string;
+}
 
 type UpdateUser = {
     uid: string;
@@ -22,7 +27,7 @@ type UpdateUser = {
 export type InventoryItem = {
   id: string;
   name:string;
-  type: InventoryItemType;
+  type: string; // Now a string to allow for custom types
   value: string;
   quantity?: number;
   unit?: string;

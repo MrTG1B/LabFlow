@@ -1,4 +1,5 @@
 
+
 import {
   Card,
   CardContent,
@@ -14,7 +15,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 animate-in">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
+        <h2 className="text-2xl font-bold tracking-tight">General Settings</h2>
         <p className="text-muted-foreground">
           Manage your account settings and preferences.
         </p>

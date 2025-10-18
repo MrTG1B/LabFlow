@@ -24,20 +24,12 @@ import type { InventoryItem, InventoryItemType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { AddItemDialog } from './add-item-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ItemDetailsDialog } from './item-details-dialog';
 import { EditItemDialog } from './edit-item-dialog';
 import { Button } from '@/components/ui/button';
 import { View, Edit, Smartphone, Monitor } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-
-const typeColorMap: Record<InventoryItemType, string> = {
-    'Capacitor': 'bg-blue-900/50 text-blue-300 border-blue-500/50',
-    'Resistor': 'bg-green-900/50 text-green-300 border-green-500/50',
-    'IC': 'bg-purple-900/50 text-purple-300 border-purple-500/50',
-    'Connector': 'bg-orange-900/50 text-orange-300 border-orange-500/50',
-    'Misc': 'bg-gray-700/50 text-gray-300 border-gray-500/50',
-};
 
 export default function InventoryPage() {
   const firestore = useFirestore();
@@ -53,8 +45,22 @@ export default function InventoryPage() {
   }, [firestore]);
 
   const { data: inventory, isLoading } = useCollection<InventoryItem>(inventoryQuery);
+
+  const itemTypesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'inventoryItemTypes'));
+  }, [firestore]);
+  const { data: itemTypes, isLoading: isLoadingTypes } = useCollection<InventoryItemType>(itemTypesQuery);
+
+  const typeColorMap = useMemo(() => {
+    if (!itemTypes) return {};
+    return itemTypes.reduce((acc, type) => {
+        acc[type.name] = type.color;
+        return acc;
+    }, {} as Record<string, string>);
+  }, [itemTypes]);
   
-  const isDataLoading = isLoading || isUserLoading;
+  const isDataLoading = isLoading || isUserLoading || isLoadingTypes;
   
   const getUpdatedByLabel = (item: InventoryItem) => {
     if (!item.updatedBy) return '';
@@ -64,6 +70,21 @@ export default function InventoryPage() {
     }
     return label;
   }
+
+  const getBadgeStyle = (typeName: string) => {
+    const color = typeColorMap[typeName];
+    if (!color) return {};
+    const [h, s, l] = color.split(" ").map(Number);
+    return {
+        '--badge-bg': `${h} ${s}% ${l}%`,
+        '--badge-fg': `${h} ${s}% ${l > 50 ? 10 : 90}%`,
+        '--badge-border': `${h} ${s}% ${l}%`,
+        backgroundColor: `hsl(${h} ${s}% ${l}% / 0.1)`,
+        color: `hsl(${h} ${s}% ${l > 50 ? 10 : 90}%)`,
+        borderColor: `hsl(${h} ${s}% ${l}% / 0.2)`,
+    } as React.CSSProperties;
+  };
+
 
   return (
     <>
@@ -113,7 +134,7 @@ export default function InventoryPage() {
                 <TableRow key={item.id} className="transition-colors hover:bg-muted/50">
                   <TableCell className="font-medium">{item.name}</TableCell>
                   <TableCell>
-                    <Badge variant={'outline'} className={cn(typeColorMap[item.type])}>
+                    <Badge variant={'outline'} style={getBadgeStyle(item.type)}>
                       {item.type}
                     </Badge>
                   </TableCell>

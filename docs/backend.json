@@ -70,7 +70,6 @@
         },
         "type": {
           "type": "string",
-          "enum": ["Capacitor", "Resistor", "IC", "Connector", "Misc"],
           "description": "The type of inventory item."
         },
         "description": {
@@ -126,6 +125,27 @@
         }
       },
       "required": ["id", "name", "type", "value"]
+    },
+    "InventoryItemType": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "InventoryItemType",
+        "type": "object",
+        "description": "Represents a user-defined type for inventory items.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the item type."
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the item type (e.g., 'Capacitor', 'Custom IC')."
+          },
+          "color": {
+            "type": "string",
+            "description": "The HSL color string associated with this type."
+          }
+        },
+        "required": ["id", "name", "color"]
     },
     "Vendor": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -223,6 +243,22 @@
               "description": "Unique identifier for the vendor."
             }
           ]
+        }
+      },
+      {
+        "path": "/inventoryItemTypes/{typeId}",
+        "definition": {
+            "entityName": "InventoryItemType",
+            "schema": {
+                "$ref": "#/backend/entities/InventoryItemType"
+            },
+            "description": "Stores user-defined inventory item types.",
+            "params": [
+                {
+                    "name": "typeId",
+                    "description": "Unique identifier for the inventory item type."
+                }
+            ]
         }
       }
     ]

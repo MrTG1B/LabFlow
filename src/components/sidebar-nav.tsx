@@ -17,6 +17,7 @@ import {
   ScanLine,
   Users,
   Settings,
+  Tags,
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -36,6 +37,11 @@ const mobileLinks = [
     { href: "/settings", label: "Settings", icon: Settings },
 ]
 
+const settingsSubLinks = [
+    { href: "/settings", label: "General" },
+    { href: "/settings/inventory-types", label: "Inventory Types" }
+]
+
 export default function SidebarNav({ isMobile = false }) {
     const pathname = usePathname();
     const links = useIsMobile() ? mobileLinks : desktopLinks;
@@ -52,12 +58,21 @@ export default function SidebarNav({ isMobile = false }) {
             <SidebarMenu>
                 {links.map((link) => (
                     <SidebarMenuItem key={link.href}>
-                        <SidebarMenuButton asChild isActive={pathname === link.href}>
+                        <SidebarMenuButton asChild isActive={pathname.startsWith(link.href) && (link.href !== '/settings' || pathname === '/settings')} isSubmenu={link.href === '/settings' && pathname.startsWith('/settings')}>
                             <Link href={link.href}>
                                 <link.icon className="h-4 w-4" />
                                 <span>{link.label}</span>
                             </Link>
                         </SidebarMenuButton>
+                         {link.href === '/settings' && (
+                            <div className="ml-7 mt-1 space-y-1 border-l pl-4">
+                                {settingsSubLinks.map(subLink => (
+                                <Link key={subLink.href} href={subLink.href} className={`block text-sm rounded-md p-1.5 ${pathname === subLink.href ? 'font-semibold text-sidebar-accent-foreground bg-sidebar-accent' : 'text-sidebar-foreground/70 hover:text-sidebar-accent-foreground'}`}>
+                                    {subLink.label}
+                                </Link>
+                                ))}
+                          </div>
+                        )}
                     </SidebarMenuItem>
                 ))}
             </SidebarMenu>

@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -525,6 +526,10 @@ const sidebarMenuButtonVariants = cva(
         sm: "h-7 text-xs",
         lg: "h-12 text-sm group-data-[collapsible=icon]:!p-0",
       },
+      isSubmenu: {
+        true: "data-[active=true]:bg-transparent data-[active=true]:font-semibold data-[active=true]:text-sidebar-primary",
+        false: ""
+      }
     },
     defaultVariants: {
       variant: "default",
@@ -547,6 +552,7 @@ const SidebarMenuButton = React.forwardRef<
       isActive = false,
       variant = "default",
       size = "default",
+      isSubmenu = false,
       tooltip,
       className,
       ...props
@@ -562,7 +568,7 @@ const SidebarMenuButton = React.forwardRef<
         data-sidebar="menu-button"
         data-size={size}
         data-active={isActive}
-        className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
+        className={cn(sidebarMenuButtonVariants({ variant, size, isSubmenu }), className)}
         {...props}
       />
     )
