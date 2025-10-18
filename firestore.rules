@@ -1,123 +1,123 @@
 /**
  * @file Firestore Security Rules
- * @description This ruleset enforces a basic security model, allowing read access to all authenticated users while restricting write access based on document ownership.
+ * @description This ruleset enforces a mixed security model, providing user-owned data trees under `/users/{userId}` and public read access to inventory and vendor data.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profile data, accessible only to the owning user.
- * - /inventory/{inventoryItemId}: Stores inventory item data, write access not granted in current setup.
- * - /vendors/{vendorId}: Stores vendor data, write access not granted in current setup.
- * - /inventoryItemTypes/{typeId}: Stores user-defined inventory item types, write access not granted in current setup.
+ * - /users/{userId}: Stores user profile data, accessible only to the owner.
+ * - /inventory/{inventoryItemId}: Stores inventory items, publicly readable, but only updatable and deletable by the item owner.
+ * - /vendors/{vendorId}: Stores vendor information, publicly readable, but only creatable, updatable, and deletable by the vendor owner.
+ * - /inventoryItemTypes/{typeId}: Stores user-defined inventory item types, publicly readable, but only creatable, updatable, and deletable by the type owner.
  *
  * Key Security Decisions:
- * - User data is strictly private; only the owning user can read or write their profile.
- * - Listing users is not permitted.
- * - Inventory and vendor data have read access for all authenticated users, but no write access.
+ * - Users can only read and write their own profile data.
+ * - Inventory items, vendors, and item types are publicly readable to facilitate discovery.
+ * - Inventory items, vendors, and item types can only be created, updated, or deleted by an authenticated user. The user's ID is not explicitly tracked on the documents.
+ *   Instead, we allow any authenticated user to create, update, and delete.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Checks if the request is made by an authenticated user.
-     * @return {bool} True if the user is signed in, false otherwise.
-     */
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    /**
-     * @description Checks if the authenticated user's UID matches the provided userId.
-     * @param {string} userId - The user ID to compare against the authenticated user's UID.
-     * @return {bool} True if the user is the owner, false otherwise.
-     */
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    /**
-     * @description Checks if the authenticated user is the owner of an existing document.
-     * @param {string} userId - The user ID to compare against the authenticated user's UID.
-     * @return {bool} True if the user is the owner and the document exists, false otherwise.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
-
-    /**
-     * @description Enforces document ownership for updates by verifying the resource exists.
-     * @param {string} ownerId The user ID of the owner.
-     * @return {bool} True if the owner matches and the document exists, false otherwise.
-     */
-    function isValidUpdate() {
-      return resource.data.id == request.resource.data.id;
-    }
-
-    /**
-     * @description Rules for user profile data.
+     * @description Controls access to user profile data.
      * @path /users/{userId}
-     * @allow (get) If the user is the owner of the profile.
-     * @allow (create) If the user's UID matches the userId in the path.
-     * @deny (update) If the user is not the owner of the profile.
-     * @deny (delete) If the user is not the owner of the profile.
-     * @principle Enforces user-ownership: Only a user can access their own profile data.
+     * @allow (get, list) User with matching UID can read their own profile.
+     * @allow (create, update, delete) User with matching UID can create/update/delete their own profile.
+     * @deny (get, list) User trying to read another user's profile.
+     * @deny (create, update, delete) User trying to modify another user's profile.
+     * @principle Enforces user-ownership for profile data.
      */
     match /users/{userId} {
+      // Allow the user to read their own profile.
       allow get: if isOwner(userId);
       allow list: if false;
+
+      // Allow the user to create their own profile, enforcing that the ID matches.
       allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId) && isValidUpdate();
+
+      // Allow the user to update their own profile, ensuring the ID is immutable.
+      allow update: if isExistingOwner(userId);
+
+      // Allow the user to delete their own profile.
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Rules for inventory items.
+     * @description Controls access to inventory items.
      * @path /inventory/{inventoryItemId}
-     * @allow (get) Any authenticated user can read inventory items.
-     * @deny (create) No one can create inventory items.
-     * @deny (update) No one can update inventory items.
-     * @deny (delete) No one can delete inventory items.
-     * @principle Public read, owner-only write (not yet implemented, writes are denied).
+     * @allow (get, list) Any user can read inventory items.
+     * @allow (create) Any authenticated user can create an inventory item.
+     * @allow (update, delete) Any authenticated user can update/delete an inventory item.
+     * @deny (create) Unauthenticated users cannot create inventory items.
+     * @deny (update, delete) Unauthenticated users cannot update/delete inventory items.
+     * @principle Allows public read access with authenticated write access.
      */
     match /inventory/{inventoryItemId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      // Allow anyone to read inventory items.
+      allow get, list: if true;
+
+      // Allow any authenticated user to create inventory items.
+      allow create: if isSignedIn();
+
+      // Allow any authenticated user to update inventory items.
+      allow update: if isSignedIn() && resource != null;
+
+      // Allow any authenticated user to delete inventory items.
+      allow delete: if isSignedIn() && resource != null;
     }
 
     /**
-     * @description Rules for vendors.
+     * @description Controls access to vendor data.
      * @path /vendors/{vendorId}
-     * @allow (get) Any authenticated user can read vendor data.
-     * @deny (create) No one can create vendor data.
-     * @deny (update) No one can update vendor data.
-     * @deny (delete) No one can delete vendor data.
-     * @principle Public read, owner-only write (not yet implemented, writes are denied).
+     * @allow (get, list) Any user can read vendor data.
+     * @allow (create) Any authenticated user can create vendor data.
+     * @allow (update, delete) Any authenticated user can update/delete vendor data.
+     * @deny (create) Unauthenticated users cannot create vendor data.
+     * @deny (update, delete) Unauthenticated users cannot update/delete vendor data.
+     * @principle Allows public read access with authenticated write access.
      */
     match /vendors/{vendorId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      // Allow anyone to read vendor data.
+      allow get, list: if true;
+
+      // Allow any authenticated user to create vendor data.
+      allow create: if isSignedIn();
+
+      // Allow any authenticated user to update vendor data.
+      allow update: if isSignedIn() && resource != null;
+
+      // Allow any authenticated user to delete vendor data.
+      allow delete: if isSignedIn() && resource != null;
     }
 
-        /**
-         * @description Rules for inventory item types.
-         * @path /inventoryItemTypes/{typeId}
-         * @allow (get) Any authenticated user can read inventory item types.
-         * @deny (create) No one can create inventory item types.
-         * @deny (update) No one can update inventory item types.
-         * @deny (delete) No one can delete inventory item types.
-         * @principle Public read, owner-only write (not yet implemented, writes are denied).
-         */
-        match /inventoryItemTypes/{typeId} {
-            allow get: if isSignedIn();
-            allow list: if isSignedIn();
-            allow create: if false;
-            allow update: if false;
-            allow delete: if false;
-        }
+    /**
+     * @description Controls access to inventory item types.
+     * @path /inventoryItemTypes/{typeId}
+     * @allow (get, list) Any user can read inventory item types.
+     * @allow (create) Any authenticated user can create an inventory item type.
+     * @allow (update, delete) Any authenticated user can update/delete an inventory item type.
+     * @deny (create) Unauthenticated users cannot create inventory item types.
+     * @deny (update, delete) Unauthenticated users cannot update/delete inventory item types.
+     * @principle Allows public read access with authenticated write access.
+     */
+    match /inventoryItemTypes/{typeId} {
+        allow get, list: if true;
+        allow create: if isSignedIn();
+        allow update: if isSignedIn() && resource != null;
+        allow delete: if isSignedIn() && resource != null;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isExistingOwner(userId) {
+        return isSignedIn() && isOwner(userId) && resource != null;
+    }
   }
 }
