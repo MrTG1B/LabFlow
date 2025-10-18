@@ -46,20 +46,25 @@ export default function AppLayout({
     }
   }, [user, isUserLoading, router, isMobile, pathname]);
   
-  // While the user's auth state is loading, show a full-screen spinner.
-  // This is crucial to prevent any content from rendering before the user is confirmed.
-  if (isUserLoading) {
+  // If there is no user and we are still in the loading process, we don't want to show anything.
+  // The useEffect will handle the redirect.
+  if (!user && isUserLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
   }
+
+  // If there's no user and loading is finished, the redirect has been triggered.
+  // Render null to avoid a flash of the layout.
+  if (!user) {
+    return null;
+  }
   
-  // If loading is done AND there's a user, render the app layout.
-  // If there's NO user, the useEffect will have already initiated the redirect,
-  // so we render null to prevent a flash of the layout.
-  return user ? (
+  // If we have a user, render the full app layout.
+  // We handle the content loading state inside the main element.
+  return (
     <SidebarProvider>
       <Sidebar>
         <SidebarNav />
@@ -68,11 +73,17 @@ export default function AppLayout({
         <div className="flex flex-col min-h-screen">
           <Header />
           <main className="flex-1 p-4 md:p-8 lg:p-10 bg-background/95">
-            {children}
+            {isUserLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              children
+            )}
           </main>
           <Toaster />
         </div>
       </SidebarInset>
     </SidebarProvider>
-  ) : null;
+  );
 }

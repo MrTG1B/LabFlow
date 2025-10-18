@@ -63,10 +63,11 @@ export default function LoginPage() {
   }, [auth, firestore]);
   
   useEffect(() => {
-    if (user) {
+    // Only redirect when loading is complete and a user object exists.
+    if (!isUserLoading && user) {
       router.push('/dashboard');
     }
-  }, [user, router]);
+  }, [user, isUserLoading, router]);
   
   useEffect(() => {
     const error = authError || userError?.message;
