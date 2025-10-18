@@ -105,6 +105,14 @@ export function EditProfileForm() {
   if (isUserLoading || !user) {
     return (
       <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+        </div>
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-10 w-1/4" />
@@ -115,19 +123,6 @@ export function EditProfileForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 max-w-2xl">
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input {...field} readOnly disabled className="cursor-not-allowed bg-muted" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -208,30 +203,45 @@ export function EditProfileForm() {
         </div>
         <FormField
           control={form.control}
-          name="phone"
+          name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Phone</FormLabel>
+              <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input placeholder="Your phone number" {...field} />
+                <Input {...field} readOnly disabled className="cursor-not-allowed bg-muted" />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-         <FormField
-          control={form.control}
-          name="post"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Post (Optional)</FormLabel>
-              <FormControl>
-                <Input placeholder="Your job title or post" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormField
+            control={form.control}
+            name="phone"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Phone</FormLabel>
+                <FormControl>
+                    <Input placeholder="Your phone number" {...field} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={form.control}
+            name="post"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Post (Optional)</FormLabel>
+                <FormControl>
+                    <Input placeholder="Your job title or post" {...field} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        </div>
         <Button type="submit" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Update profile

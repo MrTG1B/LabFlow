@@ -77,10 +77,11 @@ export default function SignupPage() {
   }, [auth, firestore]);
 
   useEffect(() => {
-    if (user) {
+    // Only redirect when loading is complete and a user object exists.
+    if (!isUserLoading && user) {
       router.push('/dashboard');
     }
-  }, [user, router]);
+  }, [user, isUserLoading, router]);
 
   useEffect(() => {
     if (authError) {
@@ -118,7 +119,6 @@ export default function SignupPage() {
     initiateGoogleSignIn(auth);
   }
 
-  // Show a loader while auth state is being determined or if a user object is present (which will trigger a redirect).
   if (isUserLoading || isProcessingRedirect || user) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
@@ -131,7 +131,7 @@ export default function SignupPage() {
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
       <div className="flex items-center justify-center py-12">
-        <div className="mx-auto grid w-[400px] gap-6">
+        <div className="mx-auto grid w-[450px] max-w-[90vw] gap-6">
           <div className="grid gap-2 text-center">
             <div className="flex items-center justify-center gap-2 mb-4">
               <CircuitBoard className="h-8 w-8 text-primary" />
@@ -144,7 +144,7 @@ export default function SignupPage() {
           </div>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
-               <div className="grid grid-cols-2 gap-4">
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  <FormField
                   control={form.control}
                   name="salutation"
@@ -194,7 +194,7 @@ export default function SignupPage() {
                   )}
                 />
               </div>
-               <div className="grid grid-cols-2 gap-4">
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="firstName"
@@ -222,19 +222,7 @@ export default function SignupPage() {
                   )}
                 />
               </div>
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input placeholder="m@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                     control={form.control}
                     name="phone"
@@ -261,6 +249,20 @@ export default function SignupPage() {
                         </FormItem>
                     )}
                 />
+              </div>
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="m@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="password"

@@ -21,29 +21,31 @@ export default function SettingsPage() {
       </div>
       <Separator />
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Profile</CardTitle>
-          <CardDescription>
-            This is how others will see you on the site.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <EditProfileForm />
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Profile</CardTitle>
+            <CardDescription>
+              This is how others will see you on the site.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <EditProfileForm />
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Theme</CardTitle>
-          <CardDescription>
-            Select the theme for the application.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ThemeSwitcher />
-        </CardContent>
-      </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Theme</CardTitle>
+            <CardDescription>
+              Select the theme for the application.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ThemeSwitcher />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
