@@ -120,17 +120,17 @@ export function ItemDetailsDialog({ item, open, onOpenChange }: ItemDetailsDialo
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-lg p-0">
+            <DialogContent className="sm:max-w-lg p-0 max-h-[90vh] flex flex-col">
                 <DialogHeader className="p-6 pb-0">
                     <DialogTitle>{item.name}</DialogTitle>
                     <DialogDescription>
                         Details for inventory item.
                     </DialogDescription>
                 </DialogHeader>
-                <ScrollArea className="max-h-[70vh]">
-                    <div className='px-6'>
+                <ScrollArea className="flex-1 min-h-0">
+                    <div className='px-6 pb-6'>
                         {item.imageUrl && (
-                            <div className='relative w-full aspect-[16/10] rounded-md overflow-hidden mb-4 border'>
+                            <div className='relative w-full aspect-[16/10] rounded-md overflow-hidden my-4 border'>
                                 <Image src={item.imageUrl} alt={item.name} fill={true} objectFit="cover" />
                             </div>
                         )}
@@ -156,7 +156,7 @@ export function ItemDetailsDialog({ item, open, onOpenChange }: ItemDetailsDialo
                         )}
                     </div>
                 </ScrollArea>
-                <DialogFooter className="p-6 pt-4 border-t grid grid-cols-2">
+                <DialogFooter className="p-6 pt-4 border-t grid grid-cols-2 mt-auto">
                     <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
                     <Button onClick={handlePrint} disabled={!item.barcode}>
                         <Printer className="mr-2 h-4 w-4" />
