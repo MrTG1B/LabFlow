@@ -26,10 +26,14 @@ export default function AppLayout({
 
   useEffect(() => {
     // When auth state is resolved, and there is no user, redirect to login page.
+    // This is the critical condition to prevent the flicker.
     if (!isUserLoading && !user) {
       router.push('/');
-    } else if (!isUserLoading && user) {
-        // Handle device-specific redirects once we know a user is logged in.
+      return; // Exit early
+    }
+
+    // Only handle device-specific redirects if a user is confirmed.
+    if (!isUserLoading && user) {
         const isDesktopOnMobilePage = !isMobile && (window.location.pathname === '/scan');
         const isMobileOnDesktopPage = isMobile && (window.location.pathname !== '/scan' && !window.location.pathname.startsWith('/inventory') && !window.location.pathname.startsWith('/vendors') && !window.location.pathname.startsWith('/literature-review') && !window.location.pathname.startsWith('/settings'));
         
@@ -39,7 +43,6 @@ export default function AppLayout({
             router.push('/scan');
         }
     }
-    // The dependency array ensures this effect runs only when auth state changes.
   }, [user, isUserLoading, router, isMobile]);
   
   // While the user's auth state is loading, show a spinner.
