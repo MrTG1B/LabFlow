@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -14,7 +14,7 @@ import Barcode from 'react-barcode';
 import type { InventoryItem, Vendor } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { enhanceDescription } from '@/app/(app)/scan/actions';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles, Printer } from 'lucide-react';
 import { useDoc, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useMemoFirebase } from '@/firebase/provider';
@@ -31,6 +31,7 @@ export function ItemDetailsDialog({ item, open, onOpenChange }: ItemDetailsDialo
     const [enhancedDescription, setEnhancedDescription] = useState<string | null>(null);
     const [isEnhancing, setIsEnhancing] = useState(false);
     const firestore = useFirestore();
+    const printComponentRef = useRef(null);
 
     const vendorRef = useMemoFirebase(() => {
         if (!firestore || !item.vendorId) return null;
@@ -69,6 +70,24 @@ export function ItemDetailsDialog({ item, open, onOpenChange }: ItemDetailsDialo
         }
     }, [item, open, enhanceItemDescription]);
 
+    const handlePrint = () => {
+        const printWindow = window.open('', '_blank');
+        if (printWindow && printComponentRef.current) {
+            printWindow.document.write('<html><head><title>Print</title>');
+            printWindow.document.write('<style>@media print { body { -webkit-print-color-adjust: exact; } @page { size: 3in 1.5in; margin: 0.1in; } .label { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; } .item-name { font-family: sans-serif; font-weight: bold; margin-bottom: 5px; font-size: 12px; text-align: center; } svg { height: 50px; } }</style>');
+            printWindow.document.write('</head><body>');
+            const printContent = (printComponentRef.current as HTMLDivElement).innerHTML;
+            printWindow.document.write(printContent);
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => {
+              printWindow.print();
+              printWindow.close();
+            }, 250);
+        }
+      };
+
     const renderDetailRow = (label: string, value: string | number | undefined | null) => (
         <div className="flex justify-between border-b py-3 text-sm">
             <dt className="text-muted-foreground">{label}</dt>
@@ -83,6 +102,18 @@ export function ItemDetailsDialog({ item, open, onOpenChange }: ItemDetailsDialo
                 {label}
             </dt>
             <dd className="font-medium whitespace-pre-wrap">{value || 'No description provided.'}</dd>
+        </div>
+    );
+
+    // Hidden div for printing
+    const PrintComponent = () => (
+        <div style={{ display: 'none' }}>
+            <div ref={printComponentRef}>
+                <div className="label">
+                    <div className="item-name">{item.name}</div>
+                    {item.barcode && <Barcode value={item.barcode} />}
+                </div>
+            </div>
         </div>
     );
 
@@ -125,9 +156,14 @@ export function ItemDetailsDialog({ item, open, onOpenChange }: ItemDetailsDialo
                         )}
                     </div>
                 </ScrollArea>
-                <DialogFooter className="p-6 pt-4 border-t">
-                    <Button onClick={() => onOpenChange(false)}>Close</Button>
+                <DialogFooter className="p-6 pt-4 border-t grid grid-cols-2">
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+                    <Button onClick={handlePrint} disabled={!item.barcode}>
+                        <Printer className="mr-2 h-4 w-4" />
+                        Print Barcode
+                    </Button>
                 </DialogFooter>
+                <PrintComponent />
             </DialogContent>
         </Dialog>
     );
