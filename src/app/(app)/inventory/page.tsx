@@ -55,7 +55,7 @@ export default function InventoryPage() {
   const typeColorMap = useMemo(() => {
     if (!itemTypes) return {};
     return itemTypes.reduce((acc, type) => {
-        acc[type.name] = type.color;
+        acc[type.name.toLowerCase()] = type.color;
         return acc;
     }, {} as Record<string, string>);
   }, [itemTypes]);
@@ -72,12 +72,12 @@ export default function InventoryPage() {
   }
 
   const getBadgeStyle = (typeName: string) => {
-    const color = typeColorMap[typeName];
+    const color = typeColorMap[typeName.toLowerCase().trim()];
     if (!color) return {};
-    const [h, s, l] = color.split(" ").map(Number);
+    const [h, s, l] = color.split(" ").map(parseFloat);
     return {
         backgroundColor: `hsl(${h} ${s}% ${l}% / 0.15)`,
-        color: `hsl(${h} ${s}% ${l + (l > 50 ? -20 : 20)}%)`,
+        color: `hsl(${h} ${s}% ${l > 50 ? l - 25 : l + 25}%)`,
         borderColor: `hsl(${h} ${s}% ${l}% / 0.2)`,
     } as React.CSSProperties;
   };
