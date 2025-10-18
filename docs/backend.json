@@ -36,13 +36,23 @@
             "type": "string",
             "description": "The user's full display name."
         },
+        "salutation": {
+            "type": "string",
+            "description": "The user's salutation (e.g., Mr., Mrs., Ms.).",
+            "enum": ["Mr.", "Mrs.", "Ms."]
+        },
+        "gender": {
+            "type": "string",
+            "description": "The user's gender.",
+            "enum": ["Male", "Female", "Other", "Prefer not to say"]
+        },
         "createdAt": {
           "type": "string",
           "description": "The date the user account was created.",
           "format": "date-time"
         }
       },
-      "required": ["uid", "email", "createdAt", "firstName", "lastName", "phone"]
+      "required": ["uid", "email", "createdAt", "firstName", "lastName", "phone", "salutation", "gender"]
     },
     "InventoryItem": {
       "$schema": "http://json-schema.org/draft-07/schema#",

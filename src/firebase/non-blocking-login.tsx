@@ -13,7 +13,7 @@ import {
 import { doc, setDoc, getDoc, Firestore } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import type { User as AppUser } from '@/lib/types';
+import type { User as AppUser, Salutation, Gender } from '@/lib/types';
 
 
 export function initiateAnonymousSignIn(authInstance: Auth): void {
@@ -23,6 +23,8 @@ export function initiateAnonymousSignIn(authInstance: Auth): void {
 type SignUpData = Omit<AppUser, 'uid' | 'createdAt' | 'displayName' | 'email'> & {
     email: string;
     password?: string;
+    salutation: Salutation;
+    gender: Gender;
 };
 
 
@@ -39,6 +41,8 @@ export async function initiateEmailSignUp(authInstance: Auth, firestore: Firesto
       phone: data.phone,
       post: data.post,
       displayName: `${data.firstName} ${data.lastName}`,
+      salutation: data.salutation,
+      gender: data.gender,
       createdAt: new Date().toISOString(),
   };
   
@@ -90,6 +94,9 @@ export function handleGoogleRedirectResult(authInstance: Auth, firestore: Firest
             lastName,
             displayName,
             phone: user.phoneNumber || '', // Often null from Google
+            // Provide default values for new fields for Google sign-up
+            salutation: 'Mr.', 
+            gender: 'Prefer not to say',
             createdAt: new Date().toISOString(),
           };
           setDoc(userRef, newUser)

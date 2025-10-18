@@ -18,16 +18,26 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { CircuitBoard, Loader2 } from "lucide-react";
 import placeholderImages from "@/lib/placeholder-images.json";
 import { useAuth, useUser, useFirestore, initiateEmailSignUp, initiateGoogleSignIn, handleGoogleRedirectResult } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
+import { salutations, genders, type Salutation, type Gender } from "@/lib/types";
 
 const formSchema = z.object({
   firstName: z.string().min(1, { message: "First name is required." }),
   lastName: z.string().min(1, { message: "Last name is required." }),
   phone: z.string().min(10, { message: "Please enter a valid phone number." }),
   post: z.string().optional(),
+  salutation: z.enum(salutations, { required_error: "Salutation is required."}),
+  gender: z.enum(genders, { required_error: "Gender is required."}),
   email: z.string().email({ message: "Please enter a valid email." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
 });
@@ -129,6 +139,56 @@ export default function SignupPage() {
           </div>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+               <div className="grid grid-cols-2 gap-4">
+                 <FormField
+                  control={form.control}
+                  name="salutation"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Salutation</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {salutations.map((s) => (
+                            <SelectItem key={s} value={s}>
+                              {s}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="gender"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Gender</FormLabel>
+                       <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {genders.map((g) => (
+                            <SelectItem key={g} value={g}>
+                              {g}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
                <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}

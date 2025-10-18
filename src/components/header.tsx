@@ -19,12 +19,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import SidebarNav from "./sidebar-nav";
-import { useAuth } from "@/firebase";
+import { useAuth, useUser } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 
 export default function Header() {
   const auth = useAuth();
+  const { user } = useUser();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -33,6 +34,19 @@ export default function Header() {
       router.push('/');
     }
   };
+  
+  const getGreeting = () => {
+    if (!user) return "Welcome";
+    const post = user.post;
+    const salutation = user.salutation;
+    const name = user.firstName;
+
+    let greeting = `Welcome, ${salutation} ${name}`;
+    if (post) {
+      greeting = `Welcome, ${post}`;
+    }
+    return greeting;
+  }
 
   return (
     <header className="flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 sticky top-0 z-30">
@@ -57,6 +71,7 @@ export default function Header() {
         </SheetContent>
       </Sheet>
       <div className="flex w-full items-center justify-end gap-4 md:ml-auto md:gap-2 lg:gap-4">
+        {user && <div className="hidden md:block text-sm font-medium">{getGreeting()}</div>}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="secondary" size="icon" className="rounded-full">

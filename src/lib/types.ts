@@ -76,6 +76,13 @@ export type RecentActivity = {
     status: 'Completed' | 'In Progress';
 }
 
+export const salutations = ["Mr.", "Mrs.", "Ms."] as const;
+export type Salutation = typeof salutations[number];
+
+export const genders = ["Male", "Female", "Other", "Prefer not to say"] as const;
+export type Gender = typeof genders[number];
+
+
 export type User = {
     uid: string;
     email: string | null;
@@ -84,5 +91,7 @@ export type User = {
     phone: string;
     post?: string;
     displayName: string;
+    salutation: Salutation;
+    gender: Gender;
     createdAt: string;
 }
