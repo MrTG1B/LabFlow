@@ -37,6 +37,7 @@ import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 import { InventoryItem, inventoryItemTypes, Vendor } from '@/lib/types';
 import { Textarea } from '@/components/ui/textarea';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -64,6 +65,7 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -100,7 +102,8 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
             updatedBy: { 
                 uid: user.uid, 
                 displayName: user.displayName,
-                post: user.post
+                post: user.post,
+                device: isMobile ? 'Mobile' : 'Desktop',
             },
         };
 
@@ -320,5 +323,3 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
     </Dialog>
   );
 }
-
-    

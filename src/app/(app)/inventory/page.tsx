@@ -28,7 +28,7 @@ import { useState } from 'react';
 import { ItemDetailsDialog } from './item-details-dialog';
 import { EditItemDialog } from './edit-item-dialog';
 import { Button } from '@/components/ui/button';
-import { View, Edit } from 'lucide-react';
+import { View, Edit, Smartphone, Monitor } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 const typeColorMap: Record<InventoryItemType, string> = {
@@ -125,7 +125,11 @@ export default function InventoryPage() {
                     {item.updatedAt && (
                       <div className="text-xs text-muted-foreground">
                         <p>{formatDistanceToNow(new Date(item.updatedAt), { addSuffix: true })}</p>
-                        <p>by {getUpdatedByLabel(item)}</p>
+                        <p className="flex items-center gap-1">
+                          by {getUpdatedByLabel(item)}
+                          {item.updatedBy?.device === 'Mobile' && <Smartphone className="h-3 w-3" />}
+                          {item.updatedBy?.device === 'Desktop' && <Monitor className="h-3 w-3" />}
+                        </p>
                       </div>
                     )}
                   </TableCell>

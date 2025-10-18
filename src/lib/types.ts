@@ -1,5 +1,4 @@
 
-
 export type Experiment = {
   id: string;
   name: string;
@@ -17,6 +16,7 @@ type UpdateUser = {
     uid: string;
     displayName: string;
     post?: string;
+    device?: 'Desktop' | 'Mobile';
 }
 
 export type InventoryItem = {

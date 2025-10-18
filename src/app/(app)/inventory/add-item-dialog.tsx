@@ -40,6 +40,7 @@ import { useToast } from '@/hooks/use-toast';
 import { InventoryItem, inventoryItemTypes, Vendor } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import { Textarea } from '@/components/ui/textarea';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -66,6 +67,7 @@ export function AddItemDialog() {
   const { user } = useUser();
   const { toast } = useToast();
   const printComponentRef = useRef(null);
+  const isMobile = useIsMobile();
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -125,7 +127,8 @@ export function AddItemDialog() {
         updatedBy: { 
             uid: user.uid, 
             displayName: user.displayName,
-            post: user.post
+            post: user.post,
+            device: isMobile ? 'Mobile' : 'Desktop',
         },
       };
       
@@ -381,5 +384,3 @@ export function AddItemDialog() {
     </>
   );
 }
-
-    

@@ -164,7 +164,8 @@ export default function ScanPage() {
             updatedBy: {
                 uid: user.uid,
                 displayName: user.displayName,
-                post: user.post
+                post: user.post,
+                device: 'Mobile',
             }
         };
 
@@ -394,7 +395,7 @@ export default function ScanPage() {
             </DialogDescription>
           </DialogHeader>
           {scannedItem && (
-            <ScrollArea className="flex-1 overflow-y-auto px-6 pb-6">
+            <ScrollArea className="flex-1 min-h-0">
                 <div className='px-6 pb-6'>
                     {capturedImage && (
                         <div className='relative w-full aspect-[16/10] rounded-md overflow-hidden my-4 border'>
@@ -485,5 +486,3 @@ export default function ScanPage() {
     </>
   );
 }
-
-    

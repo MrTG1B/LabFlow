@@ -25,7 +25,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AddVendorDialog } from './add-vendor-dialog';
 import { EditVendorDialog } from './edit-vendor-dialog';
 import { Button } from '@/components/ui/button';
-import { Edit, View } from 'lucide-react';
+import { Edit, View, Smartphone, Monitor } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
@@ -116,7 +116,11 @@ export default function VendorsPage() {
                     {vendor.updatedAt && (
                       <div className="text-xs text-muted-foreground">
                         <p>{formatDistanceToNow(new Date(vendor.updatedAt), { addSuffix: true })}</p>
-                        <p>by {getUpdatedByLabel(vendor)}</p>
+                        <p className="flex items-center gap-1">
+                          by {getUpdatedByLabel(vendor)}
+                          {vendor.updatedBy?.device === 'Mobile' && <Smartphone className="h-3 w-3" />}
+                          {vendor.updatedBy?.device === 'Desktop' && <Monitor className="h-3 w-3" />}
+                        </p>
                       </div>
                     )}
                   </TableCell>

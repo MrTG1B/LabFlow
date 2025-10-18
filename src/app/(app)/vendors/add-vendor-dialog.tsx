@@ -38,6 +38,7 @@ import { collection } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 import { Vendor, vendorTypes } from '@/lib/types';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -56,6 +57,7 @@ export function AddVendorDialog() {
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -80,7 +82,8 @@ export function AddVendorDialog() {
         updatedBy: { 
             uid: user.uid,
             displayName: user.displayName,
-            post: user.post
+            post: user.post,
+            device: isMobile ? 'Mobile' : 'Desktop',
         },
       };
       await addDocumentNonBlocking(vendorsCol, newVendor);
