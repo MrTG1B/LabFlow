@@ -16,6 +16,7 @@ import {
   CircuitBoard,
   ScanLine,
   Users,
+  Settings,
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -24,6 +25,7 @@ const desktopLinks = [
   { href: "/inventory", label: "Inventory", icon: Boxes },
   { href: "/vendors", label: "Vendors", icon: Users },
   { href: "/literature-review", label: "AI Review", icon: BookOpen },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 const mobileLinks = [
@@ -31,6 +33,7 @@ const mobileLinks = [
     { href: "/inventory", label: "Inventory", icon: Boxes },
     { href: "/vendors", label: "Vendors", icon: Users },
     { href: "/literature-review", label: "AI Review", icon: BookOpen },
+    { href: "/settings", label: "Settings", icon: Settings },
 ]
 
 export default function SidebarNav({ isMobile = false }) {

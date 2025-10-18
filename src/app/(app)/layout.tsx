@@ -27,11 +27,16 @@ export default function AppLayout({
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push('/');
-    }
-    if (!isUserLoading && user && isMobile) {
-        router.push('/scan');
-    } else if (!isUserLoading && user && !isMobile) {
-        router.push('/dashboard');
+    } else if (!isUserLoading && user) {
+        // Redirect logic is now in the page, but keeping this as a fallback
+        const isDesktopOnMobilePage = !isMobile && (window.location.pathname === '/scan');
+        const isMobileOnDesktopPage = isMobile && (window.location.pathname !== '/scan' && !window.location.pathname.startsWith('/inventory') && !window.location.pathname.startsWith('/vendors') && !window.location.pathname.startsWith('/literature-review') && !window.location.pathname.startsWith('/settings'));
+        
+        if (isDesktopOnMobilePage) {
+            router.push('/dashboard');
+        } else if (isMobileOnDesktopPage) {
+            router.push('/scan');
+        }
     }
   }, [user, isUserLoading, router, isMobile]);
 
