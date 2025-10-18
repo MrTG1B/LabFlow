@@ -73,46 +73,46 @@ export function initiateGoogleSignIn(authInstance: Auth): void {
 }
 
 
-export function handleGoogleRedirectResult(authInstance: Auth, firestore: Firestore, onError: (error: any) => void) {
-  getRedirectResult(authInstance)
-    .then(async (result) => {
-      if (result) {
-        const user = result.user;
-        const userRef = doc(firestore, 'users', user.uid);
-        const docSnap = await getDoc(userRef);
+export async function handleGoogleRedirectResult(authInstance: Auth, firestore: Firestore, onError: (error: any) => void) {
+  try {
+    const result = await getRedirectResult(authInstance);
+    if (result) {
+      const user = result.user;
+      const userRef = doc(firestore, 'users', user.uid);
+      const docSnap = await getDoc(userRef);
 
-        if (!docSnap.exists()) {
-          const displayName = user.displayName || '';
-          const nameParts = displayName.split(' ');
-          const firstName = nameParts[0] || '';
-          const lastName = nameParts.slice(1).join(' ') || '';
+      if (!docSnap.exists()) {
+        const displayName = user.displayName || '';
+        const nameParts = displayName.split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
 
-          const newUser: AppUser = {
-            uid: user.uid,
-            email: user.email,
-            firstName,
-            lastName,
-            displayName,
-            phone: user.phoneNumber || '', // Often null from Google
-            // Provide default values for new fields for Google sign-up
-            salutation: 'Mr.', 
-            gender: 'Prefer not to say',
-            createdAt: new Date().toISOString(),
-          };
-          setDoc(userRef, newUser)
-           .catch(error => {
-              errorEmitter.emit(
-                'permission-error',
-                new FirestorePermissionError({
-                  path: userRef.path,
-                  operation: 'create',
-                  requestResourceData: newUser,
-                })
-              );
-            });
-        }
+        const newUser: AppUser = {
+          uid: user.uid,
+          email: user.email,
+          firstName,
+          lastName,
+          displayName,
+          phone: user.phoneNumber || '', // Often null from Google
+          // Provide default values for new fields for Google sign-up
+          salutation: 'Mr.', 
+          gender: 'Prefer not to say',
+          createdAt: new Date().toISOString(),
+        };
+        setDoc(userRef, newUser)
+         .catch(error => {
+            errorEmitter.emit(
+              'permission-error',
+              new FirestorePermissionError({
+                path: userRef.path,
+                operation: 'create',
+                requestResourceData: newUser,
+              })
+            );
+          });
       }
-    }).catch((error) => {
-      onError(error);
-    });
+    }
+  } catch (error) {
+    onError(error);
+  }
 }

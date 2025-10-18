@@ -38,6 +38,7 @@ export default function LoginPage() {
   const { user, isUserLoading, userError } = useUser();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isProcessingRedirect, setIsProcessingRedirect] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -54,16 +55,12 @@ export default function LoginPage() {
       handleGoogleRedirectResult(auth, firestore, (error) => {
         setIsSubmitting(false);
         setAuthError(error.message);
-      });
+      }).finally(() => setIsProcessingRedirect(false));
+    } else {
+        // If firebase services aren't ready, we are not processing a redirect.
+        setIsProcessingRedirect(false);
     }
   }, [auth, firestore]);
-
-  useEffect(() => {
-    // Only redirect if loading is finished and a user object exists.
-    if (!isUserLoading && user) {
-      router.push("/dashboard");
-    }
-  }, [user, isUserLoading, router]);
   
   useEffect(() => {
     const error = authError || userError?.message;
@@ -79,10 +76,12 @@ export default function LoginPage() {
   }, [authError, userError, toast]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!auth) return;
     setIsSubmitting(true);
     setAuthError(null);
     try {
         await initiateEmailSignIn(auth, values.email, values.password);
+        // Let the main layout handle the redirect on user state change
     } catch (error: any) {
         setIsSubmitting(false);
         if (error.code === 'auth/invalid-credential') {
@@ -94,14 +93,15 @@ export default function LoginPage() {
   }
 
   function onGoogleSignIn() {
+    if (!auth) return;
     setIsSubmitting(true);
     setAuthError(null);
     initiateGoogleSignIn(auth);
   }
   
-  // While checking auth state, show a full-screen loader.
-  // This prevents the login form from flashing for already logged-in users.
-  if (isUserLoading) {
+  // Show a loader while Firebase is checking auth state OR processing a redirect result.
+  // This is crucial to prevent the login form from flashing for logged-in users.
+  if (isUserLoading || isProcessingRedirect) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -109,7 +109,13 @@ export default function LoginPage() {
     );
   }
 
-  // If loading is done and there's no user, show the login page.
+  // If a user is logged in, the AppLayout will handle rendering the dashboard.
+  // This component should render nothing to avoid a flash of the login page.
+  if (user) {
+    return null;
+  }
+
+  // Only show the login page if loading is complete and there's no user.
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
       <div className="flex items-center justify-center py-12">

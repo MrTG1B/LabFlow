@@ -1,7 +1,7 @@
 
 'use client';
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Header from "@/components/header";
 import SidebarNav from "@/components/sidebar-nav";
 import {
@@ -22,20 +22,21 @@ export default function AppLayout({
 }) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+  const pathname = usePathname();
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    // When auth state is resolved, and there is no user, redirect to login page.
-    // This is the critical condition to prevent the flicker.
+    // This is the single source of truth for protecting routes.
+    // If auth state is resolved and there is NO user, redirect to login.
     if (!isUserLoading && !user) {
       router.push('/');
-      return; // Exit early
+      return;
     }
 
     // Only handle device-specific redirects if a user is confirmed.
     if (!isUserLoading && user) {
-        const isDesktopOnMobilePage = !isMobile && (window.location.pathname === '/scan');
-        const isMobileOnDesktopPage = isMobile && (window.location.pathname !== '/scan' && !window.location.pathname.startsWith('/inventory') && !window.location.pathname.startsWith('/vendors') && !window.location.pathname.startsWith('/literature-review') && !window.location.pathname.startsWith('/settings'));
+        const isDesktopOnMobilePage = !isMobile && (pathname === '/scan');
+        const isMobileOnDesktopPage = isMobile && (pathname !== '/scan' && !pathname.startsWith('/inventory') && !pathname.startsWith('/vendors') && !pathname.startsWith('/literature-review') && !pathname.startsWith('/settings'));
         
         if (isDesktopOnMobilePage) {
             router.push('/dashboard');
@@ -43,10 +44,10 @@ export default function AppLayout({
             router.push('/scan');
         }
     }
-  }, [user, isUserLoading, router, isMobile]);
+  }, [user, isUserLoading, router, isMobile, pathname]);
   
-  // While the user's auth state is loading, show a spinner.
-  // This prevents the "glitch" of showing content before the user is confirmed.
+  // While the user's auth state is loading, show a full-screen spinner.
+  // This is crucial to prevent any content from rendering before the user is confirmed.
   if (isUserLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -55,9 +56,9 @@ export default function AppLayout({
     );
   }
   
-  // If loading is done and there's a user, render the app layout.
-  // If there's no user, the useEffect will have already initiated the redirect.
-  // Rendering null here prevents a flash of the layout before the redirect completes.
+  // If loading is done AND there's a user, render the app layout.
+  // If there's NO user, the useEffect will have already initiated the redirect,
+  // so we render null to prevent a flash of the layout.
   return user ? (
     <SidebarProvider>
       <Sidebar>

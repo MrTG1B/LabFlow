@@ -46,10 +46,11 @@ export default function SignupPage() {
   const signupImage = placeholderImages.placeholderImages.find(p => p.id === 'login-background');
   const auth = useAuth();
   const firestore = useFirestore();
-  const { user, isUserLoading, userError } = useUser();
+  const { user, isUserLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isProcessingRedirect, setIsProcessingRedirect] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -69,28 +70,28 @@ export default function SignupPage() {
       handleGoogleRedirectResult(auth, firestore, (error) => {
         setIsSubmitting(false);
         setAuthError(error.message);
-      });
+      }).finally(() => setIsProcessingRedirect(false));
+    } else {
+        setIsProcessingRedirect(false);
     }
   }, [auth, firestore]);
 
   useEffect(() => {
-    if (!isUserLoading && user) {
-      router.push("/dashboard");
-    }
+    // If a user is found, the main AppLayout will handle redirecting to the dashboard
+    // This page doesn't need to do anything.
   }, [user, isUserLoading, router]);
 
   useEffect(() => {
-    const error = authError || userError?.message;
-    if (error) {
+    if (authError) {
       toast({
         variant: "destructive",
         title: "Signup Failed",
-        description: error,
+        description: authError,
       });
       setIsSubmitting(false);
       setAuthError(null);
     }
-  }, [authError, userError, toast]);
+  }, [authError, toast]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
@@ -98,6 +99,7 @@ export default function SignupPage() {
     if (!auth || !firestore) return;
     try {
       await initiateEmailSignUp(auth, firestore, values);
+      // Let the AppLayout handle the redirect after user state changes.
     } catch (error: any) {
         setIsSubmitting(false);
         if (error.code === 'auth/email-already-in-use') {
@@ -109,18 +111,25 @@ export default function SignupPage() {
   }
 
   function onGoogleSignUp() {
+    if (!auth) return;
     setIsSubmitting(true);
     setAuthError(null);
-    if (!auth) return;
     initiateGoogleSignIn(auth);
   }
 
-  if (isUserLoading) {
+  // Show a loader while auth state is being determined.
+  if (isUserLoading || isProcessingRedirect) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
+  }
+
+  // If a user is already logged in, AppLayout will show the dashboard.
+  // This component should render nothing.
+  if (user) {
+      return null;
   }
 
   return (
@@ -290,7 +299,8 @@ export default function SignupPage() {
                     <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039L38.438 10.38C34.661 7.042 29.697 5 24 5C13.254 5 5 13.254 5 24s8.254 19 19 19s19-8.254 19-19c0-1.341-.138-2.65-.389-3.917z" />
                     <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 13 24 13c3.059 0 5.842 1.154 7.961 3.039L38.438 10.38C34.661 7.042 29.697 5 24 5C17.643 5 12.042 7.746 8.076 11.834l-1.77-1.42z" />
                     <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.438-5.38l-6.522-5.023C29.042 36.108 26.714 37 24 37c-5.223 0-9.657-3.657-11.303-8.38H6.306v.01C8.243 36.192 15.49 44 24 44z" />
-                    <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.522 5.023C42.472 35.836 44 30.138 44 24c0-1.341-.138-2.65-.389-3.917z" />
+      
+            <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.522 5.023C42.472 35.836 44 30.138 44 24c0-1.341-.138-2.65-.389-3.917z" />
                     </svg>
                     Google
                 </>}
