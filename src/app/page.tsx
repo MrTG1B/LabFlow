@@ -63,6 +63,12 @@ export default function LoginPage() {
   }, [auth, firestore]);
   
   useEffect(() => {
+    if (user) {
+      router.push('/dashboard');
+    }
+  }, [user, router]);
+  
+  useEffect(() => {
     const error = authError || userError?.message;
     if (error) {
       toast({
@@ -81,7 +87,7 @@ export default function LoginPage() {
     setAuthError(null);
     try {
         await initiateEmailSignIn(auth, values.email, values.password);
-        // Let the main layout handle the redirect on user state change
+        // The useEffect above will handle the redirect on user state change
     } catch (error: any) {
         setIsSubmitting(false);
         if (error.code === 'auth/invalid-credential') {
@@ -99,9 +105,7 @@ export default function LoginPage() {
     initiateGoogleSignIn(auth);
   }
   
-  // Show a loader while Firebase is checking auth state OR processing a redirect result.
-  // This is crucial to prevent the login form from flashing for logged-in users.
-  if (isUserLoading || isProcessingRedirect) {
+  if (isUserLoading || isProcessingRedirect || user) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -109,13 +113,6 @@ export default function LoginPage() {
     );
   }
 
-  // If a user is logged in, the AppLayout will handle rendering the dashboard.
-  // This component should render nothing to avoid a flash of the login page.
-  if (user) {
-    return null;
-  }
-
-  // Only show the login page if loading is complete and there's no user.
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
       <div className="flex items-center justify-center py-12">

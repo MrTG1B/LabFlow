@@ -77,9 +77,10 @@ export default function SignupPage() {
   }, [auth, firestore]);
 
   useEffect(() => {
-    // If a user is found, the main AppLayout will handle redirecting to the dashboard
-    // This page doesn't need to do anything.
-  }, [user, isUserLoading, router]);
+    if (user) {
+      router.push('/dashboard');
+    }
+  }, [user, router]);
 
   useEffect(() => {
     if (authError) {
@@ -99,7 +100,7 @@ export default function SignupPage() {
     if (!auth || !firestore) return;
     try {
       await initiateEmailSignUp(auth, firestore, values);
-      // Let the AppLayout handle the redirect after user state changes.
+      // Let the useEffect hook handle the redirect after user state changes.
     } catch (error: any) {
         setIsSubmitting(false);
         if (error.code === 'auth/email-already-in-use') {
@@ -117,8 +118,8 @@ export default function SignupPage() {
     initiateGoogleSignIn(auth);
   }
 
-  // Show a loader while auth state is being determined.
-  if (isUserLoading || isProcessingRedirect) {
+  // Show a loader while auth state is being determined or if a user object is present (which will trigger a redirect).
+  if (isUserLoading || isProcessingRedirect || user) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -126,11 +127,6 @@ export default function SignupPage() {
     );
   }
 
-  // If a user is already logged in, AppLayout will show the dashboard.
-  // This component should render nothing.
-  if (user) {
-      return null;
-  }
 
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
