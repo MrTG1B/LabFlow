@@ -120,14 +120,14 @@ export function ItemDetailsDialog({ item, open, onOpenChange }: ItemDetailsDialo
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-lg p-0 max-h-[90vh] flex flex-col">
+            <DialogContent className="sm:max-w-lg p-0 max-h-[90vh] flex flex-col overflow-hidden">
                 <DialogHeader className="p-6 pb-0">
                     <DialogTitle>{item.name}</DialogTitle>
                     <DialogDescription>
                         Details for inventory item.
                     </DialogDescription>
                 </DialogHeader>
-                <ScrollArea className="flex-1 min-h-0">
+                <ScrollArea className="flex-1 overflow-y-auto px-6 pb-6">
                     <div className='px-6 pb-6'>
                         {item.imageUrl && (
                             <div className='relative w-full aspect-[16/10] rounded-md overflow-hidden my-4 border'>
