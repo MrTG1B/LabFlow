@@ -387,7 +387,7 @@ export default function ScanPage() {
       </Card>
       
       <Dialog open={!!scannedItem && !isEditing} onOpenChange={(open) => !open && handleCloseDialog()}>
-        <DialogContent className="p-0 max-h-[90dvh] flex flex-col overflow-hidden">
+      <DialogContent className="p-0 max-h-[90dvh] flex flex-col overflow-hidden">
           <DialogHeader className="p-6 pb-0">
             <DialogTitle>{scannedItem?.name}</DialogTitle>
             <DialogDescription>
@@ -395,7 +395,7 @@ export default function ScanPage() {
             </DialogDescription>
           </DialogHeader>
           {scannedItem && (
-            <ScrollArea className="flex-1 min-h-0">
+            <ScrollArea className="flex-1 overflow-y-auto px-6 pb-6">
                 <div className='px-6 pb-6'>
                     {capturedImage && (
                         <div className='relative w-full aspect-[16/10] rounded-md overflow-hidden my-4 border'>
