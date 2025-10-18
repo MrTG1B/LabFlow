@@ -42,41 +42,6 @@ import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import Barcode from 'react-barcode';
 
-
-const typeColorMap: Record<InventoryItemType, string> = {
-    'Capacitor': 'hsl(var(--chart-1))',
-    'Resistor': 'hsl(var(--chart-2))',
-    'IC': 'hsl(var(--chart-3))',
-    'Connector': 'hsl(var(--chart-4))',
-    'Misc': 'hsl(var(--chart-5))',
-};
-
-const chartConfig: ChartConfig = {
-  items: {
-    label: "Items",
-  },
-  Capacitor: {
-    label: "Capacitors",
-    color: "hsl(var(--chart-1))",
-  },
-  Resistor: {
-    label: "Resistors",
-    color: "hsl(var(--chart-2))",
-  },
-  IC: {
-    label: "ICs",
-    color: "hsl(var(--chart-3))",
-  },
-  Connector: {
-    label: "Connectors",
-    color: "hsl(var(--chart-4))",
-  },
-  Misc: {
-    label: "Misc",
-    color: "hsl(var(--chart-5))",
-  },
-} satisfies ChartConfig
-
 const DashboardSkeleton = () => (
     <div className="flex flex-col gap-8">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -157,8 +122,34 @@ export default function Dashboard() {
     return query(collection(firestore, 'vendors'));
   }, [firestore]);
   const { data: vendors, isLoading: isLoadingVendors } = useCollection<Vendor>(vendorsQuery);
-  
-  const isDashboardLoading = isLoadingInventory || isLoadingRecent || isLoadingVendors;
+
+  const itemTypesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'inventoryItemTypes'));
+  }, [firestore]);
+  const { data: itemTypes, isLoading: isLoadingTypes } = useCollection<InventoryItemType>(itemTypesQuery);
+
+  const isDashboardLoading = isLoadingInventory || isLoadingRecent || isLoadingVendors || isLoadingTypes;
+
+  const { typeColorMap, chartConfig } = useMemo(() => {
+    if (!itemTypes) return { typeColorMap: {}, chartConfig: { items: { label: "Items" } } };
+    
+    const colorMap = itemTypes.reduce((acc, type) => {
+        acc[type.name.toLowerCase()] = `hsl(${type.color})`;
+        return acc;
+    }, {} as Record<string, string>);
+
+    const config = itemTypes.reduce((acc, type) => {
+        acc[type.name] = {
+            label: type.name,
+            color: `hsl(${type.color})`,
+        };
+        return acc;
+    }, { items: { label: "Items" } } as ChartConfig);
+
+    return { typeColorMap: colorMap, chartConfig: config };
+  }, [itemTypes]);
+
 
   const { stats, inventoryChartData } = useMemo(() => {
     if (!inventory) return { stats: { totalValue: 0, lowStockCount: 0 }, inventoryChartData: [] };
@@ -167,18 +158,19 @@ export default function Dashboard() {
     const lowStockCount = inventory.filter(item => item.quantity < 10).length;
 
     const typeCounts = inventory.reduce((acc, item) => {
-        acc[item.type] = (acc[item.type] || 0) + 1;
+        const typeKey = item.type;
+        acc[typeKey] = (acc[typeKey] || 0) + 1;
         return acc;
-    }, {} as Record<InventoryItemType, number>);
+    }, {} as Record<string, number>);
 
     const chartData = Object.entries(typeCounts).map(([type, count]) => ({
         type,
         count,
-        fill: typeColorMap[type as InventoryItemType],
+        fill: typeColorMap[type.toLowerCase()] || '#8884d8', // Fallback color
     }));
 
     return { stats: { totalValue, lowStockCount }, inventoryChartData: chartData };
-  }, [inventory]);
+  }, [inventory, typeColorMap]);
 
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
@@ -352,3 +344,5 @@ export default function Dashboard() {
     </>
   )
 }
+
+    
