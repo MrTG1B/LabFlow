@@ -38,11 +38,12 @@ export default function Header() {
   const getGreeting = () => {
     if (!user) return "Welcome";
     
-    const { post, salutation, firstName } = user;
+    const { post, salutation, firstName, gender } = user;
     const cSuitePosts = ['CEO', 'CTO', 'CFO', 'CMO'];
 
     if (post && cSuitePosts.includes(post.toUpperCase())) {
-      return `Welcome, ${post}`;
+      const honorific = gender === 'Male' ? 'Sir' : "Ma'am";
+      return `Welcome, ${post} ${honorific}`;
     }
     
     return `Welcome, ${salutation} ${firstName}`;
