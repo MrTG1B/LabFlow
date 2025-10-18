@@ -34,7 +34,7 @@ export default function AppLayout({
     }
 
     // Only handle device-specific redirects if a user is confirmed.
-    if (!isUserLoading && user) {
+    if (!isUserLoading && user && typeof isMobile === 'boolean') {
         const isDesktopOnMobilePage = !isMobile && (pathname === '/scan');
         const isMobileOnDesktopPage = isMobile && (pathname !== '/scan' && !pathname.startsWith('/inventory') && !pathname.startsWith('/vendors') && !pathname.startsWith('/literature-review') && !pathname.startsWith('/settings'));
         
