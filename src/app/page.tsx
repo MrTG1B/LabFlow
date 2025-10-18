@@ -59,10 +59,11 @@ export default function LoginPage() {
   }, [auth, firestore]);
 
   useEffect(() => {
-    if (user) {
+    // Only redirect if loading is finished and a user object exists.
+    if (!isUserLoading && user) {
       router.push("/dashboard");
     }
-  }, [user, router]);
+  }, [user, isUserLoading, router]);
   
   useEffect(() => {
     const error = authError || userError?.message;
@@ -97,9 +98,18 @@ export default function LoginPage() {
     setAuthError(null);
     initiateGoogleSignIn(auth);
   }
+  
+  // While checking auth state, show a full-screen loader.
+  // This prevents the login form from flashing for already logged-in users.
+  if (isUserLoading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
 
-  const showSpinner = isSubmitting || isUserLoading;
-
+  // If loading is done and there's no user, show the login page.
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
       <div className="flex items-center justify-center py-12">
@@ -147,8 +157,8 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={showSpinner}>
-                {showSpinner ? <Loader2 className="animate-spin" /> : 'Login'}
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="animate-spin" /> : 'Login'}
               </Button>
             </form>
           </Form>
@@ -162,8 +172,8 @@ export default function LoginPage() {
                 </span>
             </div>
             </div>
-            <Button variant="outline" className="w-full" onClick={onGoogleSignIn} disabled={showSpinner}>
-              {showSpinner ? <Loader2 className="animate-spin" /> : <>
+            <Button variant="outline" className="w-full" onClick={onGoogleSignIn} disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="animate-spin" /> : <>
                 <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">
                   <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039L38.438 10.38C34.661 7.042 29.697 5 24 5C13.254 5 5 13.254 5 24s8.254 19 19 19s19-8.254 19-19c0-1.341-.138-2.65-.389-3.917z" />
                   <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 13 24 13c3.059 0 5.842 1.154 7.961 3.039L38.438 10.38C34.661 7.042 29.697 5 24 5C17.643 5 12.042 7.746 8.076 11.834l-1.77-1.42z" />
