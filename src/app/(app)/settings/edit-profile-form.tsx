@@ -84,7 +84,7 @@ export function EditProfileForm() {
           updatedAt: new Date().toISOString(),
       };
       // We don't want to update the email
-      delete updatedData.email;
+      delete (updatedData as any).email;
 
       setDocumentNonBlocking(userRef, updatedData, { merge: true });
 
