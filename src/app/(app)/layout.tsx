@@ -14,7 +14,6 @@ import { useUser } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-
 export default function AppLayout({
   children,
 }: {
@@ -23,44 +22,67 @@ export default function AppLayout({
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const pathname = usePathname();
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobile(); // Initializes as undefined
 
+  // --- START: New Redirect Logic ---
+
+  // 1. We are in a "loading" state if auth is checking OR if mobile is detecting.
+  const isStillLoading = isUserLoading || typeof isMobile !== 'boolean';
+
+  // 2. Handle auth redirects *immediately* when auth state is known
   useEffect(() => {
-    // Only run redirect logic after the initial auth check is complete.
-    if (!isUserLoading) {
-      // If auth is resolved and there is still no user, redirect to login.
-      if (!user) {
-        router.push('/');
-        return;
-      }
+    if (!isUserLoading && !user) {
+      router.push('/');
+    }
+  }, [isUserLoading, user, router]);
+
+  // 3. Handle mobile redirects *only after* all loading is done
+  useEffect(() => {
+    // Wait for all checks to complete
+    if (isStillLoading) {
+      return;
+    }
+
+    // User is guaranteed to exist here because of the gate below
+    if (user) {
+      const isDesktopOnMobilePage = !isMobile && (pathname === '/scan');
+      const isMobileOnDesktopPage = isMobile && (pathname !== '/scan' && !pathname.startsWith('/inventory') && !pathname.startsWith('/vendors') && !pathname.startsWith('/literature-review') && !pathname.startsWith('/settings'));
       
-      // Handle device-specific redirects only when a user is confirmed.
-      if (typeof isMobile === 'boolean') {
-          const isDesktopOnMobilePage = !isMobile && (pathname === '/scan');
-          const isMobileOnDesktopPage = isMobile && (pathname !== '/scan' && !pathname.startsWith('/inventory') && !pathname.startsWith('/vendors') && !pathname.startsWith('/literature-review') && !pathname.startsWith('/settings'));
-          
-          if (isDesktopOnMobilePage) {
-              router.push('/dashboard');
-          } else if (isMobileOnDesktopPage) {
-              router.push('/scan');
-          }
+      if (isDesktopOnMobilePage) {
+        router.push('/dashboard');
+      } else if (isMobileOnDesktopPage) {
+        router.push('/scan');
       }
     }
-  }, [user, isUserLoading, router, isMobile, pathname]);
+  }, [isStillLoading, user, isMobile, pathname, router]);
+
   
-  // Strict Loading Gate:
-  // While we are waiting for the auth state to resolve, OR if there is no user
-  // after loading, show a full-screen loader. This prevents flicker by not
-  // rendering child components until auth is fully confirmed and stable.
-  if (isUserLoading || !user) {
+  // --- Strict Loading Gate (The Fix) ---
+  // Show spinner if *any* check is pending (auth OR mobile).
+  // Also show spinner if auth is done but there is no user
+  // (because the useEffect above is redirecting).
+  if (isStillLoading || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
   }
-  
-  // Only when auth is stable and a user exists, render the full app layout.
+
+  // --- Mobile Redirect Gate ---
+  // Before rendering, do a final check. If a mobile redirect is needed,
+  // show the loader to prevent rendering the wrong page for one frame.
+  if (isMobile && (pathname !== '/scan' && !pathname.startsWith('/inventory') && !pathname.startsWith('/vendors') && !pathname.startsWith('/literature-review') && !pathname.startsWith('/settings'))) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // --- Render App ---
+  // Only when auth is stable, a user exists, and we are on the
+  // correct page for the device, render the full app layout.
   return (
     <SidebarProvider>
       <Sidebar>
