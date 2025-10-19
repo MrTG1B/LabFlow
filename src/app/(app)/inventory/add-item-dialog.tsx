@@ -26,13 +26,6 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { PlusCircle, Loader2, Printer } from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useFirestore, useCollection, useUser } from '@/firebase';
 import { collection, query, orderBy, where, getDocs, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -43,6 +36,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { generateColorFromString } from '@/lib/color-utils';
 import { Combobox } from '@/components/ui/combobox';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -196,6 +191,13 @@ export function AddItemDialog() {
   }
 
   const typeOptions = itemTypes?.map(type => ({ value: type.name, label: type.name })) || [];
+  const vendorOptions = useMemo(() => {
+    if (!vendors) return [];
+    return [
+        { value: 'None', label: 'None' },
+        ...vendors.map((vendor) => ({ value: vendor.id, label: vendor.name })),
+    ];
+  }, [vendors]);
 
   return (
     <>
@@ -208,170 +210,183 @@ export function AddItemDialog() {
             </span>
           </Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-3xl">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-3xl p-0">
+          <DialogHeader className="p-6 pb-0">
             <DialogTitle>Add New Inventory Item</DialogTitle>
             <DialogDescription>
-              Enter the details of the new item to add it to the inventory.
+              Fill out the form below to add a new component to the inventory.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Item Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. Ceramic Capacitor" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="type"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Type</FormLabel>
-                        <Combobox
-                          options={typeOptions}
-                          value={field.value}
-                          onChange={field.onChange}
-                          onCreate={handleCreateNewType}
-                          placeholder="Select or create type..."
-                          notFoundMessage="No types found."
-                          createMessage="Create new type:"
-                          isLoading={isLoadingTypes}
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+            <ScrollArea className="max-h-[70vh]">
+              <div className="space-y-6 p-6">
+                <div className="space-y-4">
+                    <h4 className="text-sm font-medium text-muted-foreground">Core Details</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="name"
+                            render={({ field }) => (
+                                <FormItem className="md:col-span-2">
+                                <FormLabel>Item Name</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="e.g. 10k Ohm 0805 Resistor" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
                         />
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                 <FormField
-                  control={form.control}
-                  name="value"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Value</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. 10k, 1uF" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                 <FormField
-                  control={form.control}
-                  name="quantity"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Quantity</FormLabel>
-                      <FormControl>
-                        <Input type="number" placeholder="0" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="unit"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Unit</FormLabel>                      
-                      <FormControl>
-                        <Input placeholder="e.g. pcs, reels" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                 <FormField
-                  control={form.control}
-                  name="partNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Part Number (Optional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. C0805C104K5RACTU" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="vendorId"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Vendor (Optional)</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value || 'None'}>
-                            <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select a vendor" />
-                            </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectItem value="None">None</SelectItem>
-                                {vendors?.map((vendor) => (
-                                    <SelectItem key={vendor.id} value={vendor.id}>
-                                        {vendor.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                <FormField
-                    control={form.control}
-                    name="rate"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Rate (per unit, Optional)</FormLabel>
-                        <FormControl>
-                            <Input type="number" placeholder="0.00" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
+                        <FormField
+                            control={form.control}
+                            name="type"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                <FormLabel>Type</FormLabel>
+                                <Combobox
+                                    options={typeOptions}
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    onCreate={handleCreateNewType}
+                                    placeholder="Select or create..."
+                                    notFoundMessage="No types found."
+                                    createMessage="Create new type:"
+                                    isLoading={isLoadingTypes}
+                                />
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="value"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Value / Specification</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="e.g. 10k, 1uF, ATMEGA328P" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                </div>
+                
+                <Separator />
+
+                <div className="space-y-4">
+                    <h4 className="text-sm font-medium text-muted-foreground">Stock & Sourcing</h4>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="quantity"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Quantity</FormLabel>
+                                <FormControl>
+                                    <Input type="number" placeholder="0" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="unit"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Unit</FormLabel>                      
+                                <FormControl>
+                                    <Input placeholder="e.g. pcs, reels, m" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="vendorId"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                <FormLabel>Vendor (Optional)</FormLabel>
+                                <Combobox
+                                    options={vendorOptions}
+                                    value={field.value || 'None'}
+                                    onChange={field.onChange}
+                                    placeholder="Select a vendor..."
+                                    notFoundMessage="No vendors found."
+                                />
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="rate"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Rate (per unit, Optional)</FormLabel>
+                                <FormControl>
+                                    <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="space-y-4">
+                    <h4 className="text-sm font-medium text-muted-foreground">Identifiers & Notes</h4>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="partNumber"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Part Number (Optional)</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="e.g. C0805C104K5RACTU" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="barcode"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Barcode (Optional)</FormLabel>
+                                <FormControl>
+                                <Input placeholder="Leave blank to auto-generate" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="description"
+                            render={({ field }) => (
+                            <FormItem className="md:col-span-2">
+                                <FormLabel>Description (Optional)</FormLabel>
+                                <FormControl>
+                                <Textarea placeholder="Add any relevant notes, pinouts, or details..." {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                    </div>
+                </div>
               </div>
-
-              <FormField
-                control={form.control}
-                name="barcode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Barcode (Optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Leave blank to auto-generate" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description (Optional)</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Item description" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <DialogFooter>
+            </ScrollArea>
+              <DialogFooter className="border-t p-6 mt-auto">
+                <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>Cancel</Button>
                 <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -415,3 +430,5 @@ export function AddItemDialog() {
     </>
   );
 }
+
+    
