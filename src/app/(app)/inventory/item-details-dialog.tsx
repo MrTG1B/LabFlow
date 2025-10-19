@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,6 @@ import { enhanceDescription } from '@/app/(app)/scan/actions';
 import { Loader2, Sparkles, Printer } from 'lucide-react';
 import { useDoc, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { useMemoFirebase } from '@/firebase/provider';
 import Image from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -33,7 +32,7 @@ export function ItemDetailsDialog({ item, open, onOpenChange }: ItemDetailsDialo
     const firestore = useFirestore();
     const printComponentRef = useRef(null);
 
-    const vendorRef = useMemoFirebase(() => {
+    const vendorRef = useMemo(() => {
         if (!firestore || !item.vendorId) return null;
         return doc(firestore, 'vendors', item.vendorId);
     }, [firestore, item.vendorId]);
