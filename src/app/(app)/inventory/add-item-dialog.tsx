@@ -218,7 +218,7 @@ export function AddItemDialog() {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
             <ScrollArea className="flex-1 overflow-y-auto">
               <div className="space-y-6 p-6">
                 <div className="space-y-4">
