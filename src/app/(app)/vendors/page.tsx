@@ -137,7 +137,8 @@ export default function VendorsPage() {
                         <span className="sr-only">Edit</span>
                       </Button>
                     </div>
-                  </TableCell>TRow>
+                  </TableCell>
+                </TableRow>
               ))}
             </TableBody>
           </Table>
