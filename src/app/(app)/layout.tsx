@@ -1,6 +1,5 @@
 
 'use client';
-import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Header from "@/components/header";
 import SidebarNav from "@/components/sidebar-nav";
@@ -22,67 +21,60 @@ export default function AppLayout({
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const pathname = usePathname();
-  const isMobile = useIsMobile(); // Initializes as undefined
+  const isMobile = useIsMobile();
 
-  // --- START: New Redirect Logic ---
+  const isAuthLoading = isUserLoading;
+  const isMobileDetecting = typeof isMobile !== 'boolean';
 
-  // 1. We are in a "loading" state if auth is checking OR if mobile is detecting.
-  const isStillLoading = isUserLoading || typeof isMobile !== 'boolean';
+  // --- 1. Primary Loading Gate ---
+  // Show a loader if *either* auth is checking OR we are
+  // still detecting the device type.
+  if (isAuthLoading || isMobileDetecting) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
 
-  // 2. Handle auth redirects *immediately* when auth state is known
-  useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.push('/');
-    }
-  }, [isUserLoading, user, router]);
+  // --- 2. Auth Gate ---
+  // After *all* loading is done, check for a user.
+  // If no user exists, this is a protected route. Redirect to login.
+  if (!user) {
+    // We push inside render and return a loader. This is the
+    // fix that breaks the useEffect loop.
+    router.push('/');
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
 
-  // 3. Handle mobile redirects *only after* all loading is done
-  useEffect(() => {
-    // Wait for all checks to complete
-    if (isStillLoading) {
-      return;
-    }
-
-    // User is guaranteed to exist here because of the gate below
-    if (user) {
-      const isDesktopOnMobilePage = !isMobile && (pathname === '/scan');
-      const isMobileOnDesktopPage = isMobile && (pathname !== '/scan' && !pathname.startsWith('/inventory') && !pathname.startsWith('/vendors') && !pathname.startsWith('/literature-review') && !pathname.startsWith('/settings'));
-      
-      if (isDesktopOnMobilePage) {
-        router.push('/dashboard');
-      } else if (isMobileOnDesktopPage) {
-        router.push('/scan');
-      }
-    }
-  }, [isStillLoading, user, isMobile, pathname, router]);
-
+  // --- 3. Mobile Redirect Gate ---
+  // At this point, we *know* a user exists and all loading is done.
+  // Now, we just check if they are on the wrong page for their device.
+  const isDesktopOnMobilePage = !isMobile && (pathname === '/scan');
+  const isMobileOnDesktopPage = isMobile && (pathname !== '/scan' && !pathname.startsWith('/inventory') && !pathname.startsWith('/vendors') && !pathname.startsWith('/literature-review') && !pathname.startsWith('/settings'));
   
-  // --- Strict Loading Gate (The Fix) ---
-  // Show spinner if *any* check is pending (auth OR mobile).
-  // Also show spinner if auth is done but there is no user
-  // (because the useEffect above is redirecting).
-  if (isStillLoading || !user) {
-    return (
+  if (isDesktopOnMobilePage) {
+    router.push('/dashboard');
+    return ( // Show loader while redirecting
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  } else if (isMobileOnDesktopPage) {
+    router.push('/scan');
+    return ( // Show loader while redirecting
       <div className="flex items-center justify-center min-h-screen bg-background">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
   }
 
-  // --- Mobile Redirect Gate ---
-  // Before rendering, do a final check. If a mobile redirect is needed,
-  // show the loader to prevent rendering the wrong page for one frame.
-  if (isMobile && (pathname !== '/scan' && !pathname.startsWith('/inventory') && !pathname.startsWith('/vendors') && !pathname.startsWith('/literature-review') && !pathname.startsWith('/settings'))) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  // --- Render App ---
-  // Only when auth is stable, a user exists, and we are on the
-  // correct page for the device, render the full app layout.
+  // --- 4. Render App ---
+  // All checks passed. User is authenticated and on the correct page.
   return (
     <SidebarProvider>
       <Sidebar>
