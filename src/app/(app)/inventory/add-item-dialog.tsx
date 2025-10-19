@@ -210,7 +210,7 @@ export function AddItemDialog() {
             </span>
           </Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-3xl p-0">
+        <DialogContent className="sm:max-w-3xl p-0 flex flex-col max-h-[90dvh] overflow-hidden">
           <DialogHeader className="p-6 pb-0">
             <DialogTitle>Add New Inventory Item</DialogTitle>
             <DialogDescription>
@@ -219,7 +219,7 @@ export function AddItemDialog() {
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
-            <ScrollArea className="max-h-[70vh]">
+            <ScrollArea className="flex-1 overflow-y-auto">
               <div className="space-y-6 p-6">
                 <div className="space-y-4">
                     <h4 className="text-sm font-medium text-muted-foreground">Core Details</h4>
