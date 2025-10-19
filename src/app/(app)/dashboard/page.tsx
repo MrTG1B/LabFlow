@@ -105,34 +105,36 @@ export default function Dashboard() {
   const [itemToPrint, setItemToPrint] = useState<InventoryItem | null>(null);
   const printComponentRef = useRef(null);
 
+  const firestoreReady = !!firestore;
+
   const inventoryQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestoreReady) return null;
     return query(collection(firestore, 'inventory'));
-  }, [firestore]);
+  }, [firestoreReady]);
   const { data: inventory, isLoading: isLoadingInventory } = useCollection<InventoryItem>(inventoryQuery);
 
   const recentItemsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestoreReady) return null;
     return query(collection(firestore, 'inventory'), orderBy('createdAt', 'desc'), limit(5));
-  }, [firestore]);
+  }, [firestoreReady]);
   const { data: recentItems, isLoading: isLoadingRecent } = useCollection<InventoryItem>(recentItemsQuery);
 
   const vendorsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestoreReady) return null;
     return query(collection(firestore, 'vendors'));
-  }, [firestore]);
+  }, [firestoreReady]);
   const { data: vendors, isLoading: isLoadingVendors } = useCollection<Vendor>(vendorsQuery);
 
   const itemTypesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestoreReady) return null;
     return query(collection(firestore, 'inventoryItemTypes'));
-  }, [firestore]);
+  }, [firestoreReady]);
   const { data: itemTypes, isLoading: isLoadingTypes } = useCollection<InventoryItemType>(itemTypesQuery);
 
   const isDashboardLoading = isLoadingInventory || isLoadingRecent || isLoadingVendors || isLoadingTypes;
 
   const { typeColorMap, chartConfig } = useMemo(() => {
-    if (!itemTypes) return { typeColorMap: {}, chartConfig: { items: { label: "Items" } } };
+    if (!itemTypes) return { typeColorMap: {}, chartConfig: { items: { label: "Items" } } as ChartConfig };
     
     const colorMap = itemTypes.reduce((acc, type) => {
         acc[type.name.toLowerCase()] = `hsl(${type.color})`;
@@ -344,5 +346,3 @@ export default function Dashboard() {
     </>
   )
 }
-
-    
