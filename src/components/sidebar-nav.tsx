@@ -42,9 +42,10 @@ const settingsSubLinks = [
     { href: "/settings/inventory-types", label: "Inventory Types" }
 ]
 
-export default function SidebarNav({ isMobile = false }) {
+export default function SidebarNav({ isMobile: isMobileProp = false }) {
     const pathname = usePathname();
-    const links = useIsMobile() ? mobileLinks : desktopLinks;
+    const isMobileBrowser = useIsMobile();
+    const links = isMobileBrowser ? mobileLinks : desktopLinks;
 
     const navContent = (
         <>
@@ -79,7 +80,7 @@ export default function SidebarNav({ isMobile = false }) {
         </>
     );
 
-    if (isMobile) {
+    if (isMobileProp) {
         return (
             <nav className="grid gap-2 text-lg font-medium">
                 {navContent}
