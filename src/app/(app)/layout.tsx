@@ -26,19 +26,15 @@ export default function AppLayout({
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    // Redirect logic should only run once the auth state is fully resolved.
-    if (isUserLoading) {
-      return; // Wait until loading is finished
-    }
-
-    // If loading is done and there's still no user, redirect to login.
-    if (!user) {
+    // This is the single source of truth for protecting routes.
+    // If auth state is resolved and there is NO user, redirect to login.
+    if (!isUserLoading && !user) {
       router.push('/');
       return;
     }
 
-    // Handle device-specific redirects only when we have a confirmed user.
-    if (typeof isMobile === 'boolean') {
+    // Only handle device-specific redirects if a user is confirmed.
+    if (!isUserLoading && user && typeof isMobile === 'boolean') {
         const isDesktopOnMobilePage = !isMobile && (pathname === '/scan');
         const isMobileOnDesktopPage = isMobile && (pathname !== '/scan' && !pathname.startsWith('/inventory') && !pathname.startsWith('/vendors') && !pathname.startsWith('/literature-review') && !pathname.startsWith('/settings'));
         
@@ -50,10 +46,9 @@ export default function AppLayout({
     }
   }, [user, isUserLoading, router, isMobile, pathname]);
   
-  // This is the crucial loading gate.
-  // We will show a loader if the user state is still loading OR if, after loading,
-  // there is no user object yet (which can happen for a brief moment before the redirect effect kicks in).
-  // This prevents any child components from rendering prematurely.
+  // While we are waiting for the auth state to resolve, OR if there is no user
+  // after loading, show a full-screen loader. This prevents flicker by not
+  // rendering child components until auth is fully confirmed and stable.
   if (isUserLoading || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
