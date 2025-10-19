@@ -25,7 +25,7 @@ export const useIsMobile = (breakpoint = 768): boolean | undefined => {
 
     // Cleanup listener on unmount
     return () => {
-      window.removeEventListener('resize', checkScreen-size);
+      window.removeEventListener('resize', checkScreenSize);
     };
   }, [breakpoint]); // Re-run if breakpoint changes
 
