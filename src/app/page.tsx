@@ -116,8 +116,8 @@ export default function LoginPage() {
     );
   }
   
-  // If a user is found, AppLayout will redirect, so we can render nothing here
-  // to avoid a flash of the login page.
+  // If a user is found, the useEffect hook will trigger a redirect.
+  // We render null here to avoid a flash of the login page.
   if (user) {
     return null;
   }

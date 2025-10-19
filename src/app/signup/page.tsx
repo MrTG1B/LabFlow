@@ -119,12 +119,18 @@ export default function SignupPage() {
     initiateGoogleSignIn(auth);
   }
 
-  if (isUserLoading || isProcessingRedirect || user) {
+  if (isUserLoading || isProcessingRedirect) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
+  }
+
+  // If a user is found, the useEffect hook will trigger a redirect.
+  // We render null here to avoid a flash of the signup page.
+  if (user) {
+    return null;
   }
 
 
