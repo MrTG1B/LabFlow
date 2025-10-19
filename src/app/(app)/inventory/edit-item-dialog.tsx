@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -31,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useCollection, useUser } from '@/firebase';
 import { doc, collection, query, orderBy, where, getDocs } from 'firebase/firestore';
 import { setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
@@ -69,17 +69,18 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
   const { user } = useUser();
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const firestoreReady = !!firestore;
 
-  const vendorsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+  const vendorsQuery = useMemo(() => {
+    if (!firestoreReady) return null;
     return query(collection(firestore, 'vendors'), orderBy('name', 'asc'));
-  }, [firestore]);
+  }, [firestoreReady]);
   const { data: vendors } = useCollection<Vendor>(vendorsQuery);
 
-  const itemTypesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+  const itemTypesQuery = useMemo(() => {
+    if (!firestoreReady) return null;
     return query(collection(firestore, 'inventoryItemTypes'), orderBy('name'));
-  }, [firestore]);
+  }, [firestoreReady]);
   const { data: itemTypes, isLoading: isLoadingTypes } = useCollection(itemTypesQuery);
 
   const form = useForm<FormValues>({
@@ -304,7 +305,7 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
                         <FormItem>
                         <FormLabel>Rate (per unit, Optional)</FormLabel>
                         <FormControl>
-                            <Input type="number" placeholder="0.00" {...field} value={field.value ?? ''} onChange={field.onChange} />
+                            <Input type="number" placeholder="0.00" value={field.value ?? ''} onChange={field.onChange} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>

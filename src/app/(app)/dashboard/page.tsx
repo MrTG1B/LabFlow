@@ -34,7 +34,7 @@ import {
 import { PieChart, Pie, Cell } from "recharts"
 import { Badge } from "@/components/ui/badge"
 import { IndianRupee, Boxes, Users, Package, Printer } from "lucide-react"
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { useCollection, useFirestore } from "@/firebase";
 import { collection, query, orderBy, limit } from "firebase/firestore";
 import type { InventoryItem, InventoryItemType, Vendor } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -107,25 +107,25 @@ export default function Dashboard() {
 
   const firestoreReady = !!firestore;
 
-  const inventoryQuery = useMemoFirebase(() => {
+  const inventoryQuery = useMemo(() => {
     if (!firestoreReady) return null;
     return query(collection(firestore, 'inventory'));
   }, [firestoreReady]);
   const { data: inventory, isLoading: isLoadingInventory } = useCollection<InventoryItem>(inventoryQuery);
 
-  const recentItemsQuery = useMemoFirebase(() => {
+  const recentItemsQuery = useMemo(() => {
     if (!firestoreReady) return null;
     return query(collection(firestore, 'inventory'), orderBy('createdAt', 'desc'), limit(5));
   }, [firestoreReady]);
   const { data: recentItems, isLoading: isLoadingRecent } = useCollection<InventoryItem>(recentItemsQuery);
 
-  const vendorsQuery = useMemoFirebase(() => {
+  const vendorsQuery = useMemo(() => {
     if (!firestoreReady) return null;
     return query(collection(firestore, 'vendors'));
   }, [firestoreReady]);
   const { data: vendors, isLoading: isLoadingVendors } = useCollection<Vendor>(vendorsQuery);
 
-  const itemTypesQuery = useMemoFirebase(() => {
+  const itemTypesQuery = useMemo(() => {
     if (!firestoreReady) return null;
     return query(collection(firestore, 'inventoryItemTypes'));
   }, [firestoreReady]);

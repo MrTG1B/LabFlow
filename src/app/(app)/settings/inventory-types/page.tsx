@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -31,7 +31,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
@@ -50,10 +50,12 @@ export default function InventoryTypesPage() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const itemTypesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+  const firestoreReady = !!firestore;
+
+  const itemTypesQuery = useMemo(() => {
+    if (!firestoreReady) return null;
     return query(collection(firestore, 'inventoryItemTypes'), orderBy('name'));
-  }, [firestore]);
+  }, [firestoreReady]);
 
   const { data: itemTypes, isLoading } = useCollection<InventoryItemType>(itemTypesQuery);
 

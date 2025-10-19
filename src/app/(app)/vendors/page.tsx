@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/table';
 import { useCollection, useUser } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
-import { useFirestore, useMemoFirebase } from '@/firebase/provider';
+import { useFirestore } from '@/firebase/provider';
 import type { Vendor, VendorType } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AddVendorDialog } from './add-vendor-dialog';
@@ -44,10 +44,12 @@ export default function VendorsPage() {
   const [viewingVendor, setViewingVendor] = useState<Vendor | null>(null);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
 
-  const vendorsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+  const firestoreReady = !!firestore;
+
+  const vendorsQuery = useMemo(() => {
+    if (!firestoreReady) return null;
     return query(collection(firestore, 'vendors'), orderBy('name', 'asc'));
-  }, [firestore]);
+  }, [firestoreReady]);
 
   const { data: vendors, isLoading } = useCollection<Vendor>(vendorsQuery);
   
@@ -135,8 +137,7 @@ export default function VendorsPage() {
                         <span className="sr-only">Edit</span>
                       </Button>
                     </div>
-                  </TableCell>
-                </TableRow>
+                  </TableCell>TRow>
               ))}
             </TableBody>
           </Table>

@@ -19,7 +19,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useCollection, useUser } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
-import { useFirestore, useMemoFirebase } from '@/firebase/provider';
+import { useFirestore } from '@/firebase/provider';
 import type { InventoryItem, InventoryItemType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { AddItemDialog } from './add-item-dialog';
@@ -38,18 +38,19 @@ export default function InventoryPage() {
   const [viewingItem, setViewingItem] = useState<InventoryItem | null>(null);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
 
+  const firestoreReady = !!firestore;
 
-  const inventoryQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+  const inventoryQuery = useMemo(() => {
+    if (!firestoreReady) return null;
     return query(collection(firestore, 'inventory'), orderBy('name', 'asc'));
-  }, [firestore]);
+  }, [firestoreReady]);
 
   const { data: inventory, isLoading } = useCollection<InventoryItem>(inventoryQuery);
 
-  const itemTypesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+  const itemTypesQuery = useMemo(() => {
+    if (!firestoreReady) return null;
     return query(collection(firestore, 'inventoryItemTypes'));
-  }, [firestore]);
+  }, [firestoreReady]);
   const { data: itemTypes, isLoading: isLoadingTypes } = useCollection<InventoryItemType>(itemTypesQuery);
 
   const typeColorMap = useMemo(() => {

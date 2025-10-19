@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -33,7 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useCollection, useUser } from '@/firebase';
 import { collection, query, orderBy, where, getDocs, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
@@ -70,17 +70,18 @@ export function AddItemDialog() {
   const { toast } = useToast();
   const printComponentRef = useRef(null);
   const isMobile = useIsMobile();
+  const firestoreReady = !!firestore;
 
-  const vendorsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+  const vendorsQuery = useMemo(() => {
+    if (!firestoreReady) return null;
     return query(collection(firestore, 'vendors'), orderBy('name', 'asc'));
-  }, [firestore]);
+  }, [firestoreReady]);
   const { data: vendors } = useCollection<Vendor>(vendorsQuery);
 
-  const itemTypesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+  const itemTypesQuery = useMemo(() => {
+    if (!firestoreReady) return null;
     return query(collection(firestore, 'inventoryItemTypes'), orderBy('name'));
-  }, [firestore]);
+  }, [firestoreReady]);
   const { data: itemTypes, isLoading: isLoadingTypes } = useCollection(itemTypesQuery);
 
   const form = useForm<FormValues>({

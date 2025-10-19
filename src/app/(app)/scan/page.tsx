@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import {
   Card,
@@ -22,7 +22,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Camera, Loader2, Sparkles, Edit, ImagePlus, X } from 'lucide-react';
-import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useDoc, useUser } from '@/firebase';
 import { collection, query, where, getDocs, limit, doc } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { InventoryItem, Vendor } from '@/lib/types';
@@ -71,11 +71,12 @@ export default function ScanPage() {
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
+  const firestoreReady = !!firestore;
 
-  const vendorRef = useMemoFirebase(() => {
-    if (!firestore || !scannedItem?.vendorId) return null;
+  const vendorRef = useMemo(() => {
+    if (!firestoreReady || !scannedItem?.vendorId) return null;
     return doc(firestore, 'vendors', scannedItem.vendorId);
-  }, [firestore, scannedItem?.vendorId]);
+  }, [firestoreReady, scannedItem?.vendorId]);
   const { data: vendor } = useDoc<Vendor>(vendorRef);
 
 
