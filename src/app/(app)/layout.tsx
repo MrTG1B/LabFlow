@@ -26,15 +26,19 @@ export default function AppLayout({
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    // This is the single source of truth for protecting routes.
-    // If auth state is resolved and there is NO user, redirect to login.
-    if (!isUserLoading && !user) {
+    // Redirect logic should only run once the auth state is fully resolved.
+    if (isUserLoading) {
+      return; // Wait until loading is finished
+    }
+
+    // If loading is done and there's still no user, redirect to login.
+    if (!user) {
       router.push('/');
       return;
     }
 
-    // Only handle device-specific redirects if a user is confirmed.
-    if (!isUserLoading && user && typeof isMobile === 'boolean') {
+    // Handle device-specific redirects only when we have a confirmed user.
+    if (typeof isMobile === 'boolean') {
         const isDesktopOnMobilePage = !isMobile && (pathname === '/scan');
         const isMobileOnDesktopPage = isMobile && (pathname !== '/scan' && !pathname.startsWith('/inventory') && !pathname.startsWith('/vendors') && !pathname.startsWith('/literature-review') && !pathname.startsWith('/settings'));
         
@@ -46,19 +50,19 @@ export default function AppLayout({
     }
   }, [user, isUserLoading, router, isMobile, pathname]);
   
-  // If we are still determining the user's auth state, or if there is no user,
-  // show a full-screen loader. The useEffect above will handle the redirect
-  // for a non-existent user.
+  // This is the crucial loading gate.
+  // We will show a loader if the user state is still loading OR if, after loading,
+  // there is no user object yet (which can happen for a brief moment before the redirect effect kicks in).
+  // This prevents any child components from rendering prematurely.
   if (isUserLoading || !user) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-background">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
   }
   
-  // If we have a user, render the full app layout.
-  // The content loading state is now handled inside the page itself.
+  // Only when auth is stable and a user exists, render the full app layout.
   return (
     <SidebarProvider>
       <Sidebar>
