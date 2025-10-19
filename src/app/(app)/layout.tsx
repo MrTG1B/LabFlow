@@ -26,26 +26,29 @@ export default function AppLayout({
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    // This is the single source of truth for protecting routes.
-    // If auth state is resolved and there is NO user, redirect to login.
-    if (!isUserLoading && !user) {
-      router.push('/');
-      return;
-    }
-
-    // Only handle device-specific redirects if a user is confirmed.
-    if (!isUserLoading && user && typeof isMobile === 'boolean') {
-        const isDesktopOnMobilePage = !isMobile && (pathname === '/scan');
-        const isMobileOnDesktopPage = isMobile && (pathname !== '/scan' && !pathname.startsWith('/inventory') && !pathname.startsWith('/vendors') && !pathname.startsWith('/literature-review') && !pathname.startsWith('/settings'));
-        
-        if (isDesktopOnMobilePage) {
-            router.push('/dashboard');
-        } else if (isMobileOnDesktopPage) {
-            router.push('/scan');
-        }
+    // Only run redirect logic after the initial auth check is complete.
+    if (!isUserLoading) {
+      // If auth is resolved and there is still no user, redirect to login.
+      if (!user) {
+        router.push('/');
+        return;
+      }
+      
+      // Handle device-specific redirects only when a user is confirmed.
+      if (typeof isMobile === 'boolean') {
+          const isDesktopOnMobilePage = !isMobile && (pathname === '/scan');
+          const isMobileOnDesktopPage = isMobile && (pathname !== '/scan' && !pathname.startsWith('/inventory') && !pathname.startsWith('/vendors') && !pathname.startsWith('/literature-review') && !pathname.startsWith('/settings'));
+          
+          if (isDesktopOnMobilePage) {
+              router.push('/dashboard');
+          } else if (isMobileOnDesktopPage) {
+              router.push('/scan');
+          }
+      }
     }
   }, [user, isUserLoading, router, isMobile, pathname]);
   
+  // Strict Loading Gate:
   // While we are waiting for the auth state to resolve, OR if there is no user
   // after loading, show a full-screen loader. This prevents flicker by not
   // rendering child components until auth is fully confirmed and stable.
