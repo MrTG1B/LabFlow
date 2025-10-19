@@ -71,7 +71,7 @@ export default function SignupPage() {
         setIsSubmitting(false);
         setAuthError(error.message);
       }).finally(() => setIsProcessingRedirect(false));
-    } else {
+    } else if (!auth || !firestore) {
         setIsProcessingRedirect(false);
     }
   }, [auth, firestore]);
@@ -121,13 +121,13 @@ export default function SignupPage() {
 
   if (isUserLoading || isProcessingRedirect) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center">
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
   }
 
-  // If a user is found, the useEffect hook will trigger a redirect.
+  // If a user is found after loading, the useEffect hook will trigger a redirect.
   // We render null here to avoid a flash of the signup page.
   if (user) {
     return null;

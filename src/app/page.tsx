@@ -56,8 +56,9 @@ export default function LoginPage() {
         setIsSubmitting(false);
         setAuthError(error.message);
       }).finally(() => setIsProcessingRedirect(false));
-    } else {
+    } else if (!auth || !firestore) {
         // If firebase services aren't ready, we are not processing a redirect.
+        // This can happen briefly on initial load.
         setIsProcessingRedirect(false);
     }
   }, [auth, firestore]);
@@ -107,21 +108,20 @@ export default function LoginPage() {
   }
   
   // While we check for auth state or if a user already exists, show a loader.
-  // The layout will handle the redirect for an authenticated user.
+  // The useEffect hook will handle the redirect for an authenticated user.
   if (isUserLoading || isProcessingRedirect) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center">
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
   }
   
-  // If a user is found, the useEffect hook will trigger a redirect.
+  // If a user is found after loading, the useEffect hook will trigger a redirect.
   // We render null here to avoid a flash of the login page.
   if (user) {
     return null;
   }
-
 
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
