@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo, useState, useRef, useEffect } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import {
   Card,
   CardContent,
@@ -106,12 +106,6 @@ export default function Dashboard() {
   const printComponentRef = useRef(null);
 
   const firestoreReady = !!firestore;
-
-  // DEBUG: Add this useEffect to watch the flag
-  useEffect(() => {
-    console.log("Firestore ready status:", firestoreReady);
-  }, [firestoreReady]);
-  // END DEBUG
 
   const inventoryQuery = useMemo(() => {
     if (!firestoreReady) return null;
@@ -352,5 +346,3 @@ export default function Dashboard() {
     </>
   )
 }
-
-    

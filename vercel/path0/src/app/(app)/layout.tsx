@@ -50,14 +50,19 @@ export default function AppLayout({
   // This prevents the flicker by not rendering the child components until auth is confirmed.
   if (isUserLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-background">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
   }
   
-  // If we have a user, render the full app layout.
-  // The content loading state is now handled inside the page itself.
+  // After loading, if there's still no user, the useEffect will handle the redirect.
+  // Render null to prevent a flash of content before the redirect happens.
+  if (!user) {
+    return null;
+  }
+  
+  // Only when auth is stable and a user exists, render the full app layout.
   return (
     <SidebarProvider>
       <Sidebar>
@@ -75,5 +80,3 @@ export default function AppLayout({
     </SidebarProvider>
   );
 }
-
-    
