@@ -143,7 +143,7 @@ export function AddItemDialog() {
       await handleCreateNewType(values.type);
 
       const inventoryCol = collection(firestore, 'inventory');
-      const barcode = values.barcode || uuidv4();
+      const barcode = values.barcode || uuidv4().substring(0, 8).toUpperCase();
       const now = new Date().toISOString();
       
       const newItem: Omit<InventoryItem, 'id'> = {
