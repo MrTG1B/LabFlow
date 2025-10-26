@@ -5,8 +5,8 @@ import { FirebaseClientProvider } from '@/firebase';
 import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'Degen Technologies',
-  description: 'A comprehensive lab management software for Degen Technologies Pvt. Ltd.',
+  title: 'Dgen Technologies',
+  description: 'A comprehensive lab management software for Dgen Technologies Pvt. Ltd.',
 };
 
 export default function RootLayout({

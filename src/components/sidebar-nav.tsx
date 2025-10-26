@@ -52,7 +52,7 @@ export default function SidebarNav({ isMobile: isMobileProp = false }) {
             <SidebarHeader>
                 <Link href="/dashboard" className="flex items-center gap-2">
                     <CircuitBoard className="h-6 w-6 text-primary" />
-                    <h1 className="text-xl font-bold font-headline text-sidebar-foreground">Degen Technologies</h1>
+                    <h1 className="text-xl font-bold font-headline text-sidebar-foreground">Dgen Technologies</h1>
                 </Link>
             </SidebarHeader>
 

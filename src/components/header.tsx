@@ -57,7 +57,7 @@ export default function Header() {
           className="flex items-center gap-2 text-lg font-semibold md:text-base"
         >
           <CircuitBoard className="h-6 w-6 text-primary" />
-          <span className="sr-only">Degen Technologies</span>
+          <span className="sr-only">Dgen Technologies</span>
         </Link>
       </nav>
       <Sheet>

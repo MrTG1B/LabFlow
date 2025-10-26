@@ -1,6 +1,6 @@
 # LabFlow
 
-LabFlow is a comprehensive lab management software for Degen Technologies Pvt. Ltd., designed to streamline research operations.
+LabFlow is a comprehensive lab management software for Dgen Technologies Pvt. Ltd., designed to streamline research operations.
 
 ## Core Features
 
