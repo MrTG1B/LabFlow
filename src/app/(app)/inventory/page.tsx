@@ -28,8 +28,9 @@ import { useState, useMemo } from 'react';
 import { ItemDetailsDialog } from './item-details-dialog';
 import { EditItemDialog } from './edit-item-dialog';
 import { Button } from '@/components/ui/button';
-import { View, Edit, Smartphone, Monitor } from 'lucide-react';
+import { View, Edit, Smartphone, Monitor, Search } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { Input } from '@/components/ui/input';
 
 export default function InventoryPage() {
   const firestore = useFirestore();
@@ -37,6 +38,7 @@ export default function InventoryPage() {
   
   const [viewingItem, setViewingItem] = useState<InventoryItem | null>(null);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const firestoreReady = !!firestore;
 
@@ -60,6 +62,25 @@ export default function InventoryPage() {
         return acc;
     }, {} as Record<string, string>);
   }, [itemTypes]);
+
+  const filteredInventory = useMemo(() => {
+    if (!inventory) return [];
+    if (!searchQuery) return inventory;
+
+    const lowercasedQuery = searchQuery.toLowerCase();
+
+    return inventory.filter(item => {
+        return (
+            item.name?.toLowerCase().includes(lowercasedQuery) ||
+            item.type?.toLowerCase().includes(lowercasedQuery) ||
+            item.value?.toLowerCase().includes(lowercasedQuery) ||
+            item.quantity?.toString().toLowerCase().includes(lowercasedQuery) ||
+            item.description?.toLowerCase().includes(lowercasedQuery) ||
+            item.barcode?.toLowerCase().includes(lowercasedQuery) ||
+            item.partNumber?.toLowerCase().includes(lowercasedQuery)
+        );
+    });
+  }, [inventory, searchQuery]);
   
   const isDataLoading = isLoading || isUserLoading || isLoadingTypes;
   
@@ -87,14 +108,26 @@ export default function InventoryPage() {
   return (
     <>
       <Card className="animate-in">
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <CardTitle>Inventory</CardTitle>
             <CardDescription>
               Manage electronic components, including storage locations.
             </CardDescription>
           </div>
-          <AddItemDialog />
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-initial">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search inventory..."
+                className="pl-8 sm:w-[250px] md:w-[300px]"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <AddItemDialog />
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -121,14 +154,14 @@ export default function InventoryPage() {
                   </TableRow>
                 ))
               )}
-              {!isDataLoading && inventory?.length === 0 && (
+              {!isDataLoading && filteredInventory.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center">
-                    No inventory items found. Add one to get started.
+                  <TableCell colSpan={6} className="text-center h-24">
+                    {searchQuery ? `No results found for "${searchQuery}"` : "No inventory items found. Add one to get started."}
                   </TableCell>
                 </TableRow>
               )}
-              {!isDataLoading && inventory?.map((item) => (
+              {!isDataLoading && filteredInventory.map((item) => (
                 <TableRow key={item.id} className="transition-colors hover:bg-muted/50">
                   <TableCell className="font-medium">{item.name}</TableCell>
                   <TableCell>
