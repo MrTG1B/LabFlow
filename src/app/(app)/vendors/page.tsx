@@ -25,11 +25,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AddVendorDialog } from './add-vendor-dialog';
 import { EditVendorDialog } from './edit-vendor-dialog';
 import { Button } from '@/components/ui/button';
-import { Edit, View, Smartphone, Monitor } from 'lucide-react';
+import { Edit, View, Smartphone, Monitor, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { VendorDetailsDialog } from './vendor-details-dialog';
+import { Input } from '@/components/ui/input';
 
 const typeColorMap: Record<VendorType, string> = {
     'Online': 'bg-green-900/50 text-green-300 border-green-500/50',
@@ -43,6 +44,7 @@ export default function VendorsPage() {
   
   const [viewingVendor, setViewingVendor] = useState<Vendor | null>(null);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const firestoreReady = !!firestore;
 
@@ -52,6 +54,20 @@ export default function VendorsPage() {
   }, [firestoreReady]);
 
   const { data: vendors, isLoading } = useCollection<Vendor>(vendorsQuery);
+
+  const filteredVendors = useMemo(() => {
+    if (!vendors) return [];
+    if (!searchQuery) return vendors;
+
+    const lowercasedQuery = searchQuery.toLowerCase();
+    return vendors.filter(vendor => 
+        vendor.name?.toLowerCase().includes(lowercasedQuery) ||
+        vendor.type?.toLowerCase().includes(lowercasedQuery) ||
+        vendor.website?.toLowerCase().includes(lowercasedQuery) ||
+        vendor.phone?.toLowerCase().includes(lowercasedQuery) ||
+        vendor.address?.toLowerCase().includes(lowercasedQuery)
+    );
+  }, [vendors, searchQuery]);
   
   const isDataLoading = isLoading || isUserLoading;
 
@@ -67,14 +83,26 @@ export default function VendorsPage() {
   return (
     <>
       <Card className="animate-in">
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <CardTitle>Vendors</CardTitle>
             <CardDescription>
               Manage your suppliers and vendors.
             </CardDescription>
           </div>
-          <AddVendorDialog />
+           <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-initial">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search vendors..."
+                className="pl-8 sm:w-[250px] md:w-[300px]"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <AddVendorDialog />
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -97,14 +125,14 @@ export default function VendorsPage() {
                   </TableRow>
                 ))
               )}
-              {!isDataLoading && vendors?.length === 0 && (
+              {!isDataLoading && filteredVendors?.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center">
-                    No vendors found. Add one to get started.
+                  <TableCell colSpan={4} className="text-center h-24">
+                     {searchQuery ? `No results found for "${searchQuery}"` : "No vendors found. Add one to get started."}
                   </TableCell>
                 </TableRow>
               )}
-              {!isDataLoading && vendors?.map((vendor) => (
+              {!isDataLoading && filteredVendors?.map((vendor) => (
                 <TableRow key={vendor.id} className="transition-colors hover:bg-muted/50">
                   <TableCell className="font-medium">{vendor.name}</TableCell>
                   <TableCell>

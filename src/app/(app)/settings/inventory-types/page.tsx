@@ -47,7 +47,7 @@ import { collection, query, orderBy, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Loader2, Search, Trash2 } from 'lucide-react';
 import { generateColorFromString } from '@/lib/color-utils';
 import type { InventoryItemType } from '@/lib/types';
 
@@ -60,6 +60,7 @@ export default function InventoryTypesPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const firestoreReady = !!firestore;
 
@@ -69,6 +70,16 @@ export default function InventoryTypesPage() {
   }, [firestoreReady]);
 
   const { data: itemTypes, isLoading } = useCollection<InventoryItemType>(itemTypesQuery);
+
+  const filteredItemTypes = useMemo(() => {
+    if (!itemTypes) return [];
+    if (!searchQuery) return itemTypes;
+    
+    const lowercasedQuery = searchQuery.toLowerCase();
+    return itemTypes.filter(type => 
+        type.name.toLowerCase().includes(lowercasedQuery)
+    );
+  }, [itemTypes, searchQuery]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -134,6 +145,16 @@ export default function InventoryTypesPage() {
                 <CardHeader>
                     <CardTitle>Existing Types</CardTitle>
                     <CardDescription>The list of all current inventory types.</CardDescription>
+                     <div className="relative pt-4">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            type="search"
+                            placeholder="Search types..."
+                            className="pl-8"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <Table>
@@ -152,7 +173,14 @@ export default function InventoryTypesPage() {
                                     <TableCell><Skeleton className="h-8 w-10 ml-auto" /></TableCell>
                                 </TableRow>
                             ))}
-                            {itemTypes?.map(type => (
+                            {!isLoading && filteredItemTypes?.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={3} className="text-center h-24">
+                                        {searchQuery ? `No results for "${searchQuery}"` : "No types found."}
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                            {filteredItemTypes?.map(type => (
                                 <TableRow key={type.id}>
                                     <TableCell className="font-medium">{type.name}</TableCell>
                                     <TableCell>
