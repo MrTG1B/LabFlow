@@ -13,6 +13,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -23,10 +34,10 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Trash2 } from 'lucide-react';
 import { useFirestore, useCollection, useUser } from '@/firebase';
 import { doc, collection, query, orderBy, where, getDocs } from 'firebase/firestore';
-import { setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { setDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 import { InventoryItem, Vendor } from '@/lib/types';
 import { Textarea } from '@/components/ui/textarea';
@@ -116,6 +127,26 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
     }
   }, [firestore, toast]);
 
+  async function handleDelete() {
+    if (!firestore) return;
+
+    try {
+        const itemRef = doc(firestore, 'inventory', item.id);
+        await deleteDocumentNonBlocking(itemRef);
+        toast({
+            title: 'Item Deleted',
+            description: `"${item.name}" has been removed from inventory.`,
+        });
+        onOpenChange(false);
+    } catch (error) {
+        console.error('Error deleting document: ', error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Could not delete the item. Please try again.',
+        });
+    }
+  }
 
   async function onSubmit(values: FormValues) {
     if (!firestore || !user) return;
@@ -187,7 +218,7 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
           <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
             <ScrollArea className="flex-1 overflow-y-auto px-6 pb-6">
-                    <div className="space-y-6 p-6">
+                    <div className="space-y-6">
                         <div className="space-y-4">
                             <h4 className="text-sm font-medium text-muted-foreground">Core Details</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -352,15 +383,39 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
                         </div>
                     </div>
                 </ScrollArea>
-              <DialogFooter className="border-t p-6 mt-auto">
-                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    'Save Changes'
-                  )}
-                </Button>
+              <DialogFooter className="border-t p-6 mt-auto flex justify-between">
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button type="button" variant="destructive" className="mr-auto" disabled={isSubmitting}>
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete the item
+                                "{item.name}" from your inventory.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                                Delete
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+                <div className="flex gap-2">
+                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                        'Save Changes'
+                    )}
+                    </Button>
+                </div>
               </DialogFooter>
             </form>
           </Form>
@@ -368,5 +423,3 @@ export function EditItemDialog({ item, open, onOpenChange }: EditItemDialogProps
     </Dialog>
   );
 }
-
-    

@@ -13,6 +13,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -31,8 +42,8 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2 } from 'lucide-react';
-import { useFirestore, useUser } from '@/firebase';
+import { Loader2, Trash2 } from 'lucide-react';
+import { useFirestore, useUser, deleteDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
@@ -71,6 +82,25 @@ export function EditVendorDialog({ vendor, open, onOpenChange }: EditVendorDialo
     form.reset(vendor);
   }, [vendor, form]);
 
+  async function handleDelete() {
+    if (!firestore) return;
+    try {
+        const vendorRef = doc(firestore, 'vendors', vendor.id);
+        await deleteDocumentNonBlocking(vendorRef);
+        toast({
+            title: 'Vendor Deleted',
+            description: `Vendor "${vendor.name}" has been deleted.`,
+        });
+        onOpenChange(false);
+    } catch (error) {
+        console.error('Error deleting document:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Could not delete the vendor. Please try again.',
+        });
+    }
+  }
 
   async function onSubmit(values: FormValues) {
     if (!firestore || !user) return;
@@ -198,15 +228,39 @@ export function EditVendorDialog({ vendor, open, onOpenChange }: EditVendorDialo
                   </FormItem>
                 )}
               />
-              <DialogFooter>
-                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    'Save Changes'
-                  )}
-                </Button>
+              <DialogFooter className="flex justify-between w-full">
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button type="button" variant="destructive" className="mr-auto" disabled={isSubmitting}>
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete the vendor
+                                "{vendor.name}". Any inventory items associated with this vendor will not be deleted.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                                Delete
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+                <div className="flex gap-2">
+                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                        'Save Changes'
+                    )}
+                    </Button>
+                </div>
               </DialogFooter>
             </form>
           </Form>

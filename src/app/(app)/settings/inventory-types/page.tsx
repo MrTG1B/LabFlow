@@ -21,6 +21,17 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -32,11 +43,11 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useCollection, useFirestore } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, query, orderBy, doc } from 'firebase/firestore';
+import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2, PlusCircle } from 'lucide-react';
+import { Loader2, Trash2 } from 'lucide-react';
 import { generateColorFromString } from '@/lib/color-utils';
 import type { InventoryItemType } from '@/lib/types';
 
@@ -63,6 +74,25 @@ export default function InventoryTypesPage() {
     resolver: zodResolver(formSchema),
     defaultValues: { name: '' },
   });
+
+  const handleDelete = async (type: InventoryItemType) => {
+    if (!firestore) return;
+    try {
+        const typeRef = doc(firestore, 'inventoryItemTypes', type.id);
+        await deleteDocumentNonBlocking(typeRef);
+        toast({
+            title: 'Type Deleted',
+            description: `The type "${type.name}" has been deleted.`,
+        });
+    } catch (error) {
+        console.error('Error deleting type:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Could not delete the type.',
+        });
+    }
+  };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!firestore) return;
@@ -111,6 +141,7 @@ export default function InventoryTypesPage() {
                             <TableRow>
                                 <TableHead>Name</TableHead>
                                 <TableHead>Color Preview</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -118,6 +149,7 @@ export default function InventoryTypesPage() {
                                 <TableRow key={i}>
                                     <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                                    <TableCell><Skeleton className="h-8 w-10 ml-auto" /></TableCell>
                                 </TableRow>
                             ))}
                             {itemTypes?.map(type => (
@@ -131,6 +163,30 @@ export default function InventoryTypesPage() {
                                             />
                                             <span className="text-sm text-muted-foreground">{type.color}</span>
                                         </div>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                         <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" size="icon">
+                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        This action cannot be undone. This will permanently delete the type
+                                                        "{type.name}". Existing items with this type will not be affected but may need to be updated.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleDelete(type)} className="bg-destructive hover:bg-destructive/90">
+                                                        Delete
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
                                     </TableCell>
                                 </TableRow>
                             ))}
