@@ -77,7 +77,8 @@ export default function InventoryPage() {
             item.quantity?.toString().toLowerCase().includes(lowercasedQuery) ||
             item.description?.toLowerCase().includes(lowercasedQuery) ||
             item.barcode?.toLowerCase().includes(lowercasedQuery) ||
-            item.partNumber?.toLowerCase().includes(lowercasedQuery)
+            item.partNumber?.toLowerCase().includes(lowercasedQuery) ||
+            item.rate?.toString().toLowerCase().includes(lowercasedQuery)
         );
     });
   }, [inventory, searchQuery]);
